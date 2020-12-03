@@ -1,18 +1,19 @@
-import DobotDllType as dType
+import Dobot.DobotDllType as dType
+from Precigenome.PGMFC import PGMFC
+
 import time
 import serial
 import sys
 import msvcrt
 import json
-from Precigenome.PGMFC import PGMFC
 import numpy as np
 import math
 import cv2
 
-
-##### GENERAL FUNCTIONS ######
-
 def ask_yes_no():
+    '''
+    Simple function to double check that the operator wants to commit to an action
+    '''
     possible = ['y','n']
     while True:
         c = msvcrt.getch().decode()
@@ -24,6 +25,9 @@ def ask_yes_no():
             return False
 
 def run_cmd(api,last_index):
+    '''
+    Executes the dobot's queued commands
+    '''
     dType.SetQueuedCmdStartExec(api)
     #Wait for Executing Last Command
     while last_index[0] > dType.GetQueuedCmdCurrentIndex(api)[0]:
@@ -35,20 +39,25 @@ def run_cmd(api,last_index):
 
 
 def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
+    '''
+    Packages the printing information for transfer to the Arduino to open and
+    close the valves as instructed. The Arduino should be loaded with the program
+    arduino_valve_control.ino
+    '''
     single_Ctrl = [255,255]
     single_Ctrl.append(feq)
     single_Ctrl.append(pw%256)
     single_Ctrl.append(pw//256)
-    print('through pulse')
     single_Ctrl.append(repw%256)
     single_Ctrl.append(repw//256)
     single_Ctrl.append(pc)
-    print(single_Ctrl)
     temp = bytes(single_Ctrl)
-    print(temp)
     return temp
 
 def Switch_CtrlSeq(switchstate):
+    '''
+    Signals to the Arduino that the printing command is complete
+    '''
     single_Ctrl=[]
     if switchstate == 1:
         single_Ctrl = [255,255,239,239]
@@ -57,21 +66,23 @@ def Switch_CtrlSeq(switchstate):
     return bytes(single_Ctrl)
 
 def get_coords(coords):
+    '''
+    Converts the coordinates stored in a dictionary to a numpy array
+    '''
     return np.array(list(coords.values()))
 
 
 ##### MAIN CLASS DEFINITION  ######
 
-class Well_plate():
-
-    def __init__(self):
-        print('Created well plate')
-
-
 class Platform():
-
+    '''
+    The platform class includes all the methods required to control the Dobot
+    robotic arm, the Arduino and the Precigenome pressure regulator
+    '''
     def __init__(self):
         print('Created platform instance')
+
+        # Define the initial starting conditions
         self.frequency = 20
         self.pulse_width = 3000
         self.refuel_width = 47000
@@ -90,6 +101,11 @@ class Platform():
         platform.close_reg()
 
     def init_dobot(self):
+        '''
+        Establishes the connection to the Dobot and sets its movement parameters.
+        It also reads in the print calibration file which includes the locations
+        of the loading and tube positions.
+        '''
         self.api = dType.load()
         self.CON_STR = {
             dType.DobotConnect.DobotConnect_NoError:  "DobotConnect_NoError",
@@ -120,7 +136,7 @@ class Platform():
         self.current_row = 0
         self.current_column = 0
 
-        self.calibration_file_path = 'print_calibrations.json'
+        self.calibration_file_path = '../Calibrations/print_calibrations.json'
         with open(self.calibration_file_path) as json_file:
             self.calibration_data =  json.load(json_file)
         self.loading_position = self.calibration_data['loading_position']
@@ -130,6 +146,11 @@ class Platform():
         return
 
     def home_dobot(self):
+        '''
+        Initially resets the Dobot's position and then initiates the homing
+        protocol. Reseting the position ensures that the arm is not extended
+        when rotating
+        '''
         print("Home Dobot? (y/n)")
         if not ask_yes_no():
             return
@@ -140,6 +161,10 @@ class Platform():
         return
 
     def reset_dobot_position(self):
+        '''
+        Moves the Dobot to a location where its range is limited to avoid
+        the arm making contact during homing
+        '''
         print("Reset Dobot position? (y/n)")
         if not ask_yes_no():
             return
@@ -147,12 +172,28 @@ class Platform():
         return
 
     def gen_trans_matrix(self):
+        '''
+        Performs a 4-point transformation of the coordinate plane using the
+        experimentally derived plate corners. This takes the dobot coordinates
+        and finds the matrix required to convert them into the coordinate plane
+        that matches the defined geometry of the plate. This matrix can then be
+        reversed and used to take the positions where wells should be and
+        convert them into the corresponding dobot coordinates.
+
+        This transformation accounts for the deviations in the Dobot coordinate
+        system but only applies to the X and Y dimensions.
+        '''
         self.trans_matrix = cv2.getPerspectiveTransform(self.corners, self.plate_dimensions)
         self.inv_trans_matrix = np.linalg.pinv(self.trans_matrix)
         return
 
     def get_plate_data(self):
-        self.plate_file_path = 'shallow-384_well_plate.json'
+        '''
+        Extracts the metadata about a given well plate and stores it. It also
+        generates the transformation matrix needed to correct the deviations
+        in the Dobot positioning. Also accounts for deviations in the Z dimension
+        '''
+        self.plate_file_path = '../Calibrations/shallow-384_well_plate.json'
         with open(self.plate_file_path) as json_file:
             self.plate_data =  json.load(json_file)
         self.plate_name = self.plate_data['plate_name']
@@ -185,28 +226,34 @@ class Platform():
         return
 
     def correct_xy_coords(self,x,y):
-        print(x,y)
+        '''
+        Uses the transformation matrix to correct the XY coordinates
+        '''
         target = np.array([[x,y]], dtype = "float32")
-        print(target)
         target_transformed = cv2.perspectiveTransform(np.array(target[None,:,:]), self.inv_trans_matrix)
-        print('transformed')
         return target_transformed[0][0]
 
     def get_well_coords(self,row,column):
+        '''
+        Uses the well indices to determine the dobot coordinates of the well
+        '''
         print('get well coords')
         x,y = self.correct_xy_coords(row*self.spacing,column*self.spacing)
         z = self.top_left['z'] + (row * self.row_z_step) + (column * self.col_z_step)
         return {'x':x, 'y':y, 'z':z}
 
     def change_print_position(self):
+        '''
+        Initiates a protocol to modify the expected well locations of a given
+        plate. Moves from corner to corner allowing the operator to manually
+        drive the dobot to correct any deviations. Once all the points are
+        corrected, the new positions are stored in the plate metadata file.
+        '''
         print("Change print position? (y/n)")
         if not ask_yes_no(): return
         self.move_to_print_position()
         self.dobot_manual_drive()
         self.top_left = self.current_coords
-
-        # x_far = self.top_left['x'] + (self.spacing * (self.max_rows))
-        # y_far = self.top_left['y'] + (self.spacing * (self.max_columns))
 
         self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
         self.dobot_manual_drive()
@@ -229,6 +276,9 @@ class Platform():
         return
 
     def change_tube_position(self):
+        '''
+        Changes the position of the calibration tube located in the tube rack
+        '''
         print("Change tube position? (y/n)")
         if not ask_yes_no(): return
         self.move_to_tube_position()
@@ -239,6 +289,9 @@ class Platform():
         return
 
     def write_plate_data(self):
+        '''
+        Takes all of the current plate data and updates the metadata file
+        '''
         print("Store print position? (y/n)")
         if not ask_yes_no(): return
         self.plate_data['top_left'] = self.top_left
@@ -253,6 +306,9 @@ class Platform():
         print("Plate data saved")
 
     def write_printing_calibrations(self):
+        '''
+        Updates the print calibrations json file
+        '''
         print("Store print calibrations? (y/n)")
         if not ask_yes_no(): return
         self.calibration_data['loading_position'] = self.loading_position
@@ -266,16 +322,27 @@ class Platform():
 
 
     def move_to_loading_position(self):
+        '''
+        Moves the Dobot to the loading position specified in
+        printing_calibrations.json
+        '''
         print('Moving to loading position...')
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         return
 
     def move_to_tube_position(self):
+        '''
+        Moves the Dobot to the tube position specified in
+        printing_calibrations.json
+        '''
         print('Moving to tube position...')
         self.move_dobot(self.tube_position['x'],self.tube_position['y'],self.tube_position['z'])
         return
 
     def move_to_print_position(self):
+        '''
+        Moves the Dobot to well A1 specified in the plate metadata file
+        '''
         print('Moving to printing position...')
         self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
         self.current_row = 0
@@ -283,7 +350,10 @@ class Platform():
         return
 
     def move_dobot(self,x,y,z):
-        print('Dobot moving...')
+        '''
+        Takes a set of XYZ coordinates and moves the Dobot to that location
+        '''
+        print('Dobot moving...',end='')
         last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVLXYZMode, x,y,z,0, isQueued = 1)
         run_cmd(self.api,last_index)
         self.current_coords = {'x':x,'y':y,'z':z}
@@ -293,11 +363,12 @@ class Platform():
         return
 
     def move_to_well(self,row,column):
+        '''
+        Moves the Dobot to a defined well while checking that the well is within
+        the bounds of the plate
+        '''
         if row <= self.max_rows and column <= self.max_columns and row >= 0 and column >= 0:
-            # target_coords = get_coords(self.start_coords) + row*self.row_step + column*self.col_step
-            print('in if statement')
             target_coords = self.get_well_coords(row,column)
-            print('moving')
             self.move_dobot(target_coords['x'],target_coords['y'],target_coords['z'])
             self.current_row = row
             self.current_column = column
@@ -329,6 +400,10 @@ class Platform():
         return
 
     def load_gripper(self):
+        '''
+        Initiates a protocol to open and close the gripper to make exchanging
+        printer heads easier
+        '''
         print('Load gripper? (y/n)')
         if not ask_yes_no(): return
         print('Press enter to open gripper')
@@ -339,6 +414,12 @@ class Platform():
         self.close_gripper()
 
     def dobot_manual_drive(self):
+        '''
+        Initiates the manual drive protocol to control the movement of the
+        Dobot using the keyboard. Directs movement in the XYZ
+        directions by a defined step size that can be changed to allow for
+        coarse or fine grain movement
+        '''
         print("starting manual dobot control")
         x = self.current_coords['x']
         y = self.current_coords['y']
@@ -383,6 +464,11 @@ class Platform():
             self.move_dobot(x,y,z)
 
     def drive_platform(self):
+        '''
+        Comprehensive manually driving function. Within this method, the
+        operator is able to move the dobot by wells, load and unload the
+        gripper, set and control pressures, and print defined arrays
+        '''
         print("Driving platform...")
         while True:
             try:
@@ -468,18 +554,18 @@ class Platform():
         return
 
     def print_droplets(self,freq,pulse_width,refuel_width,count):
-        print('starting print...')
+        '''
+        Sends the desired printing instructions to the Arduino
+        '''
+        print('starting print...',end='')
         self.ser.write(SetParam_CtrlSeq(freq,pulse_width,refuel_width,count))
         time.sleep(0.2)
-        print('made params')
         self.ser.write(Switch_CtrlSeq(1))
         time.sleep(0.2)
-        print('switched')
 
         current = self.ser.read().decode()
         while current != 'C':
             current = self.ser.read().decode()
-            print(current)
             time.sleep(0.1)
 
         time.sleep(0.1)
@@ -487,12 +573,18 @@ class Platform():
         return
 
     def refuel_test(self):
+        '''
+        Defined printing protocol used in calibration
+        '''
         print('Refuel test')
         print(self.frequency,0,self.refuel_width,self.test_droplet_count)
         self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count)
         return
 
     def pulse_test(self):
+        '''
+        Defined printing protocol used in calibration
+        '''
         print('Pulse test')
         self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count)
         return
@@ -502,6 +594,10 @@ class Platform():
         return
 
     def init_pressure(self):
+        '''
+        Initiates the Precigenome pressure regulator and the two different
+        channels used
+        '''
         print("Connecting pressure regulator...")
         self.mcfs = PGMFC()
         self.mcfs.monitor_start(span=100)
@@ -555,9 +651,17 @@ class Platform():
         return
 
     def calc_resistance(self,counter,droplets,width,pressure,volume):
+        '''
+        Utilizes the equation defined in the printing_calibration_methods.md
+        file
+        '''
         return (counter * droplets * (width * 10**-3) * (6874.76 * pressure)) / (volume * 10**-9)
 
     def resistance_testing(self):
+        '''
+        Directs the operator through the calibration process that is defined in
+        the printing_calibration_methods.md file
+        '''
         print('Resistance testing mode...')
         print('Current overflow chamber volume: ',self.chamber_volume)
         print('Prepare chip for testing')
@@ -653,19 +757,3 @@ class Platform():
                 print('Resistances:\tRefuel = {}\tPulse = {}'.format(round(np.mean(refuel_resistances),2),round(np.mean(pulse_resistances),2)))
                 print('Times:\tRefuel = {}\tPulse = {}'.format(round(np.sum(refuel_times),2),round(np.mean(pulse_times),2)))
                 return
-
-
-
-
-if __name__ == '__main__':
-    platform = Platform()
-    # platform.init_dobot()
-    # platform.init_pressure()
-    platform.initiate_all()
-    #
-    platform.home_dobot()
-    # platform.change_print_position()
-    platform.drive_platform()
-    # platform.close_reg()
-    # platform.disconnect_dobot()
-    platform.disconnect_all()
