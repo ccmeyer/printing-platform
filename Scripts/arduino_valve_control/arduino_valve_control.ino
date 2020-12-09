@@ -53,7 +53,16 @@ void ParamPass()     // receive cmd data after flush the buffer, while stopping 
           pulseswitch = 1;
           //break;
           i=i+4;
-        } else {
+        } else if (datard[i + 2] == 237 && datard[i + 3] == 237) {   // EF EF
+          pulseswitch = 2;
+          //break;
+          i=i+4;
+        } else if (datard[i + 2] == 235 && datard[i + 3] == 235) {   // EF EF
+          pulseswitch = 3;
+          //break;
+          i=i+4;
+        } 
+        else {
           Freq = datard[i + 2];
           tp = 1000 / Freq;
           PW = datard[i + 4] * 256 + datard[i + 3];
@@ -105,7 +114,6 @@ void setup() { // put your setup code here, to run once:
   }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   ParamPass();
   if (pulseswitch == 1) {
     if(PW == 0){    // Refuel test
@@ -126,6 +134,7 @@ void loop() {
         delay(1000/Freq/2 - PW/1000/2);
       } 
     }
+    
     else {    //Normal droplet printing with refuel open when not pulsing
       for(j=0; j < pulsecount; j++){
         delay(1000/Freq/2 - PW/1000/2);
@@ -141,6 +150,14 @@ void loop() {
     digitalWrite(valveR, LOW);
     Serial.write('C');
     pulseswitch = 0;
+    delay(100);
+  } else if (pulseswitch == 2) {
+//    digitalWrite(valveP, LOW);
+    digitalWrite(valveR, HIGH);
+    delay(100);
+  } else if (pulseswitch == 3) {
+    digitalWrite(valveP, HIGH);
+//    digitalWrite(valveR, LOW);
     delay(100);
   } else {
     digitalWrite(valveP, LOW);
