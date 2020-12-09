@@ -591,7 +591,7 @@ def load():
         print(platform.architecture())
         # print("python环境是：",platform.architecture())
 
-        return CDLL("./DobotDll.dll",  RTLD_GLOBAL)
+        return CDLL("./Dobot/DobotDll.dll",  RTLD_GLOBAL)
     elif platform.system() == "Darwin":
         return CDLL("./libDobotDll.dylib",  RTLD_GLOBAL)
     elif platform.system() == "Linux":
