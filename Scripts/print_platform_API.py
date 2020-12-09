@@ -9,6 +9,7 @@ import json
 import numpy as np
 import math
 import cv2
+import glob
 
 def ask_yes_no():
     '''
@@ -54,15 +55,19 @@ def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
     temp = bytes(single_Ctrl)
     return temp
 
-def Switch_CtrlSeq(switchstate):
+def Switch_CtrlSeq(state):
     '''
     Signals to the Arduino that the printing command is complete
     '''
     single_Ctrl=[]
-    if switchstate == 1:
+    if state == 'close':
         single_Ctrl = [255,255,239,239]
-    else:
+    elif state == 'print':
         single_Ctrl = [255,255,254,254]
+    elif state == 'refuel':
+        single_Ctrl = [255,255,237,237]
+    elif state == 'pulse':
+        single_Ctrl = [255,255,235,235]
     return bytes(single_Ctrl)
 
 def get_coords(coords):
@@ -96,9 +101,10 @@ class Platform():
         self.init_ard('COM6')
 
     def disconnect_all(self):
-        platform.disconnect_dobot()
-        platform.close_ard()
-        platform.close_reg()
+        self.disconnect_dobot()
+        self.close_ard()
+        self.pressure_off()
+        self.close_reg()
 
     def init_dobot(self):
         '''
@@ -254,18 +260,22 @@ class Platform():
         self.move_to_print_position()
         self.dobot_manual_drive()
         self.top_left = self.current_coords
+        # self.top_left['z'] -= 2
 
         self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
         self.dobot_manual_drive()
         self.top_right = self.current_coords
+        # self.top_right['z'] -= 2
 
         self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
         self.dobot_manual_drive()
         self.bottom_right = self.current_coords
+        # self.bottom_right['z'] -= 2
 
         self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
         self.dobot_manual_drive()
         self.bottom_left = self.current_coords
+        # self.bottom_left['z'] -= 2
 
         self.gen_trans_matrix()
 
@@ -430,38 +440,75 @@ class Platform():
         while True:
             try:
                 c = msvcrt.getch().decode()
-                if c == "w":
-                    x -= step
-                elif c == "s":
-                    x += step
-                elif c == "a":
-                    y -= step
-                elif c == "d":
-                    y += step
-                elif c == "k":
-                    z += step
-                elif c == "m":
-                    z -= step
-                elif c == 'f':
-                    step_num = step_num + 1
-                    step = possible_steps[abs(step_num) % len(possible_steps)]
-                    print('changed to {}'.format(step))
-                elif c == 'v':
-                    step_num = step_num - 1
-                    step = possible_steps[abs(step_num) % len(possible_steps)]
-                    print('changed to {}'.format(step))
-                elif c == "q":
-                    print('Quit (y/n)')
-                    if ask_yes_no():
-                        return
-                    else:
-                        print("Didn't quit")
-                else:
-                    print("not valid")
             except:
-                print('not valid')
+                print('Not a valid input')
+                c = 'n'
+            if c == "w":
+                x -= step
+            elif c == "s":
+                x += step
+            elif c == "a":
+                y -= step
+            elif c == "d":
+                y += step
+            elif c == "k":
+                z += step
+            elif c == "m":
+                z -= step
+            elif c == 'f':
+                step_num = step_num + 1
+                step = possible_steps[abs(step_num) % len(possible_steps)]
+                print('changed to {}'.format(step))
+            elif c == 'v':
+                step_num = step_num - 1
+                step = possible_steps[abs(step_num) % len(possible_steps)]
+                print('changed to {}'.format(step))
+            elif c == "q":
+                print('Quit (y/n)')
+                if ask_yes_no():
+                    return
+                else:
+                    print("Didn't quit")
+            else:
+                print("not valid")
+            # except:
+            #     print('not valid')
             # print('Current position: x={}\ty={}\tz={}'.format(self.x,self.y,self.z))
             self.move_dobot(x,y,z)
+
+    def print_array(self):
+        print("Print an array? (y/n)")
+        if not ask_yes_no():
+            return
+        all_arrays = glob.glob('../Print_arrays/*.csv')
+        print('Possible arrays:')
+        for i,arr in enumerate(all_arrays):
+            print('{}: {}'.format(i,arr))
+
+        possible_inputs = [str(i) for i in range(len(all_arrays))]
+        temp = True
+        while temp:
+            print('Enter desired array number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            else:
+                current_path = all_arrays[int(entry)]
+                temp = False
+        print('Chosen array: ',current_path)
+
+        arr = pd.read_csv(current_path)
+        for index, line in arr.iterrows():
+            self.move_to_well(line['Row'],line['Column'])
+            self.print_droplets(20,3000,50000,line['Droplet'])
+            print('On {} out of {}'.format(index,len(arr)))
+
+
+
+
+
+
+
 
     def drive_platform(self):
         '''
@@ -473,74 +520,86 @@ class Platform():
         while True:
             try:
                 c = msvcrt.getch().decode()
-                print(c)
-                if c == "w":
-                    self.move_to_well(self.current_row - 1, self.current_column)
-                elif c == "s":
-                    self.move_to_well(self.current_row + 1, self.current_column)
-                elif c == "a":
-                    self.move_to_well(self.current_row, self.current_column - 1 )
-                elif c == "d":
-                    self.move_to_well(self.current_row, self.current_column + 1)
-                elif c == 'g':
-                    self.load_gripper()
-                elif c == 'p':
-                    self.move_to_print_position()
-                elif c == 'l':
-                    self.move_to_loading_position()
-                elif c == '[':
-                    self.move_to_tube_position()
-                elif c == 'y':
-                    self.change_print_position()
-                elif c == 'h':
-                    self.change_tube_position()
-                elif c == 't':
-                    self.print_droplets(20,3000,50000,10)
-                elif c == 'o':
-                    self.pressure_on()
-                elif c == 'i':
-                    self.pressure_off()
-                elif c == 'u':
-                    self.set_pressure(10,10)
-                elif c == 'x':
-                    self.refuel_test()
-                elif c == 'c':
-                    self.pulse_test()
-                elif c == ']':
-                    self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
-                elif c == ';':
-                    self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
-                elif c == '.':
-                    self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
-
-                elif c == '1':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-                elif c == '2':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
-                elif c == '3':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
-                elif c == '4':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
-
-                elif c == '6':
-                    self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-                elif c == '7':
-                    self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
-                elif c == '8':
-                    self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-                elif c == '9':
-                    self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
-
-                elif c == "q":
-                    print('Quit (y/n)')
-                    if ask_yes_no():
-                        return
-                    else:
-                        print("Didn't quit")
-                else:
-                    print("not valid")
             except:
-                print("Unable to complete action")
+                print('Not a valid input')
+            if c == "w":
+                self.move_to_well(self.current_row - 1, self.current_column)
+            elif c == "s":
+                self.move_to_well(self.current_row + 1, self.current_column)
+            elif c == "a":
+                self.move_to_well(self.current_row, self.current_column - 1 )
+            elif c == "d":
+                self.move_to_well(self.current_row, self.current_column + 1)
+            elif c == 'g':
+                self.load_gripper()
+            elif c == 'p':
+                self.move_to_print_position()
+            elif c == 'l':
+                self.move_to_loading_position()
+            elif c == '[':
+                self.move_to_tube_position()
+            elif c == 'y':
+                self.change_print_position()
+            elif c == 'h':
+                self.change_tube_position()
+            elif c == 't':
+                self.print_droplets(20,3000,50000,10)
+            elif c == 'o':
+                self.pressure_on()
+            elif c == 'i':
+                self.pressure_off()
+            elif c == 'u':
+                self.set_pressure(10,10)
+            elif c == 'j':
+                self.set_pressure(2,0.3)
+            elif c == 'r':
+                self.pressure_test()
+            elif c == 'x':
+                self.refuel_test()
+            elif c == 'c':
+                self.pulse_test()
+            elif c == 'b':
+                self.resistance_testing()
+            elif c == ']':
+                self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
+            elif c == ';':
+                self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
+            elif c == '.':
+                self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
+
+            # elif c == ']':
+            #     self.refuel_open()
+            # elif c == ';':
+            #     self.pulse_open()
+            # elif c == '.':
+            #     self.close_valves()
+
+            elif c == '1':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+            elif c == '2':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+            elif c == '3':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+            elif c == '4':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+
+            elif c == '6':
+                self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+            elif c == '7':
+                self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+            elif c == '8':
+                self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+            elif c == '9':
+                self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+
+            elif c == "q":
+                print('Quit (y/n)')
+                if ask_yes_no():
+                    return
+                else:
+                    print("Didn't quit")
+            else:
+                print("not valid")
 
     def disconnect_dobot(self):
         self.deactivate_gripper()
@@ -560,7 +619,7 @@ class Platform():
         print('starting print...',end='')
         self.ser.write(SetParam_CtrlSeq(freq,pulse_width,refuel_width,count))
         time.sleep(0.2)
-        self.ser.write(Switch_CtrlSeq(1))
+        self.ser.write(Switch_CtrlSeq('close'))
         time.sleep(0.2)
 
         current = self.ser.read().decode()
@@ -655,7 +714,7 @@ class Platform():
         Utilizes the equation defined in the printing_calibration_methods.md
         file
         '''
-        return (counter * droplets * (width * 10**-3) * (6874.76 * pressure)) / (volume * 10**-9)
+        return (counter * droplets * (width * 10**-6) * (6874.76 * pressure)) / (volume * 10**-9)
 
     def resistance_testing(self):
         '''
@@ -698,20 +757,21 @@ class Platform():
                     if step == 'start':
                         step = "refuel"
                     elif step == 'refuel':
-                        resistance = calc_resistance(click_counter, self.test_droplet_count,self.refuel_width,self.refuel_pressure,self.chamber_volume)
+                        resistance = self.calc_resistance(click_counter, self.test_droplet_count,self.refuel_width,self.refuel_pressure,self.chamber_volume)
                         refuel_resistances.append(round((resistance * 10**-11),2))
-                        refuel_times.append(click_counter * self.test_droplet_count * self.refuel_width)
+                        refuel_times.append(click_counter * self.test_droplet_count * self.refuel_width * 10**-3)
                         refuel_counter += 1
                         step = 'pulse'
                         print('Calculated resistance = ',resistance)
                     else:
-                        resistance = calc_resistance(click_counter, self.test_droplet_count,self.pulse_width,self.pulse_pressure,self.chamber_volume)
+                        resistance = self.calc_resistance(click_counter, self.test_droplet_count,self.pulse_width,self.pulse_pressure,self.chamber_volume)
                         pulse_resistances.append(round((resistance * 10**-11),2))
-                        pulse_times.append(click_counter * self.test_droplet_count * self.pulse_width)
+                        pulse_times.append(click_counter * self.test_droplet_count * self.pulse_width * 10**-3)
                         pulse_counter += 1
                         step = 'refuel'
                         print('Calculated resistance = ',resistance)
                     print('Currently on {}\trefuel counter = {}\tpulse counter = {}'.format(step,refuel_counter,pulse_counter))
+                    click_counter = 0
 
                 elif c == 'o':
                     self.pressure_on()
@@ -755,5 +815,73 @@ class Platform():
                 print('Pulse times:\t{}\t{}\t{}'.format(pulse_times[0],pulse_times[1],pulse_times[2]))
                 print('\nAverages:')
                 print('Resistances:\tRefuel = {}\tPulse = {}'.format(round(np.mean(refuel_resistances),2),round(np.mean(pulse_resistances),2)))
-                print('Times:\tRefuel = {}\tPulse = {}'.format(round(np.sum(refuel_times),2),round(np.mean(pulse_times),2)))
+                print('Times:\tRefuel = {}\tPulse = {}'.format(round(np.sum(refuel_times),2),round(np.sum(pulse_times),2)))
                 return
+
+    def record_flow(self):
+        pulse_flow_data = []
+        refuel_flow_data = []
+        for i in range(100):
+            pulse_flow_data.append(self.channel_pulse.get_airflowrate()[0])
+            refuel_flow_data.append(self.channel_refuel.get_airflowrate()[0])
+
+            if pulse_flow_data[i] > 60000:
+                pulse_flow_data[i] -= 65536
+            if refuel_flow_data[i] > 60000:
+                refuel_flow_data[i] -= 65536
+
+            if i % 10 == 0 and i != 0:
+                avg_pulse = round(np.mean(pulse_flow_data[i-10:i]),3)
+                avg_refuel = round(np.mean(refuel_flow_data[i-10:i]),3)
+                # print("On {}:\tP:{}\tR:{}\t||\tP:{}\tR:{}".format(avg_pulse,avg_refuel,self.channel_pulse.get_pressure(),self.channel_refuel.get_pressure()))
+                print("On {}:\tP:{}\tR:{}".format(i,avg_pulse,avg_refuel))
+
+            time.sleep(.1)
+        print("Press enter to proceed")
+        input()
+
+    def refuel_open(self):
+        self.ser.write(Switch_CtrlSeq('refuel'))
+
+    def pulse_open(self):
+        self.ser.write(Switch_CtrlSeq('pulse'))
+
+    def close_valves(self):
+        self.ser.write(Switch_CtrlSeq('close'))
+
+    def pressure_test(self):
+        print("Test the pressure regulator? (y/n)")
+        if not ask_yes_no():
+            return
+        print("Load the dummy printer head")
+        self.load_gripper()
+
+        self.set_pressure(10,10)
+        self.pressure_on()
+        self.record_flow()
+
+        self.refuel_open()
+        self.pulse_open()
+        self.record_flow()
+
+        self.close_valves()
+        self.record_flow()
+
+        self.refuel_open()
+        self.pulse_open()
+        self.record_flow()
+
+        self.close_valves()
+        self.record_flow()
+        return
+
+
+
+
+
+
+
+
+
+
+#
