@@ -76,6 +76,10 @@ def get_coords(coords):
     '''
     return np.array(list(coords.values()))
 
+def section_break():
+    print("\n==================================\n")
+    return
+
 
 ##### MAIN CLASS DEFINITION  ######
 
@@ -96,15 +100,25 @@ class Platform():
         self.chamber_volume = 7.5
 
     def initiate_all(self):
+        section_break()
+        print('Initializing all components')
         self.init_pressure()
         self.init_dobot()
         self.init_ard('COM6')
+        print('All components are connected')
+        section_break()
+        return
 
     def disconnect_all(self):
+        section_break()
+        print('Disconnecting all components')
         self.disconnect_dobot()
         self.close_ard()
         self.pressure_off()
         self.close_reg()
+        print('All components are disconnected')
+        section_break()
+        return
 
     def init_dobot(self):
         '''
@@ -112,6 +126,7 @@ class Platform():
         It also reads in the print calibration file which includes the locations
         of the loading and tube positions.
         '''
+        print('\nConnecting the Dobot...\n')
         self.api = dType.load()
         self.CON_STR = {
             dType.DobotConnect.DobotConnect_NoError:  "DobotConnect_NoError",
@@ -132,9 +147,17 @@ class Platform():
         #Clean Command Queued
         dType.SetQueuedCmdClear(self.api)
 
+        # Extract all calibration data
+        self.calibration_file_path = '../Calibrations/print_calibrations.json'
+        with open(self.calibration_file_path) as json_file:
+            self.calibration_data =  json.load(json_file)
+        self.home_position = self.calibration_data['home_position']
+        self.loading_position = self.calibration_data['loading_position']
+        self.tube_position = self.calibration_data['tube_position']
+
         #Async Motion Params Setting
-        dType.SetHOMEParams(self.api, 200, 0, 150, 0, isQueued = 1)
-        dType.SetPTPJointParams(self.api, 100, 100, 100, 100, 100, 100, 100, 100, isQueued = 1)
+        dType.SetHOMEParams(self.api, self.home_position['x'],self.home_position['y'],self.home_position['z'], 0, isQueued = 1)
+        dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
         dType.SetPTPCommonParams(self.api, 100, 100, isQueued = 1)
 
         self.activate_gripper()
@@ -142,13 +165,6 @@ class Platform():
         self.location = 'home'
         self.current_row = 0
         self.current_column = 0
-
-        self.calibration_file_path = '../Calibrations/print_calibrations.json'
-        with open(self.calibration_file_path) as json_file:
-            self.calibration_data =  json.load(json_file)
-        self.loading_position = self.calibration_data['loading_position']
-        self.tube_position = self.calibration_data['tube_position']
-
 
         return
 
@@ -176,7 +192,7 @@ class Platform():
         print("Reset Dobot position? (y/n)")
         if not ask_yes_no():
             return
-        self.move_dobot(200,0,150)
+        self.move_dobot(self.home_position['x'],self.home_position['y'],self.home_position['z'])
         self.location = 'home'
         return
 
@@ -229,7 +245,7 @@ class Platform():
 
         self.row_z_step = (self.bottom_left['z'] - self.top_left['z']) / (self.max_rows)
         self.col_z_step =  (self.top_right['z'] - self.top_left['z']) / (self.max_columns)
-        print('Z steps:',self.row_z_step,self.col_z_step)
+        # print('Z steps:',self.row_z_step,self.col_z_step)
 
         self.current_coords = self.top_left
         return
@@ -246,7 +262,6 @@ class Platform():
         '''
         Uses the well indices to determine the dobot coordinates of the well
         '''
-        print('get well coords')
         x,y = self.correct_xy_coords(row*self.spacing,column*self.spacing)
         z = self.top_left['z'] + (row * self.row_z_step) + (column * self.col_z_step)
         return {'x':x, 'y':y, 'z':z}
@@ -345,7 +360,7 @@ class Platform():
             return
         elif self.location == 'calibration':
             self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
-            self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+            # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
             self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.location = 'loading'
@@ -356,14 +371,14 @@ class Platform():
         Moves the Dobot to the tube position specified in
         printing_calibrations.json
         '''
-        print('Moving to calibration position...')
+        print('\nMoving to calibration position...')
         if self.location == 'calibration':
             print('Already in calibration position')
             return
         elif self.location == 'plate':
             self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
-        self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
 
@@ -374,7 +389,7 @@ class Platform():
         '''
         Moves the Dobot to well A1 specified in the plate metadata file
         '''
-        print('Moving to printing position...')
+        print('\nMoving to printing position...')
         self.move_to_well(0,0)
         return
 
@@ -386,9 +401,7 @@ class Platform():
         last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVLXYZMode, x,y,z,0, isQueued = 1)
         run_cmd(self.api,last_index)
         self.current_coords = {'x':x,'y':y,'z':z}
-
-        print('Current position: x={}\ty={}\tz={}'.format(x,y,z))
-
+        print('Current position: x={}\ty={}\tz={}'.format(round(x,2),round(y,2),round(z,2)))
         return
 
     def move_to_well(self,row,column):
@@ -453,6 +466,7 @@ class Platform():
         directions by a defined step size that can be changed to allow for
         coarse or fine grain movement
         '''
+        section_break()
         print("starting manual dobot control")
         x = self.current_coords['x']
         y = self.current_coords['y']
@@ -489,6 +503,8 @@ class Platform():
             elif c == "q":
                 print('Quit (y/n)')
                 if ask_yes_no():
+                    print('Quitting...')
+                    section_break()
                     return
                 else:
                     print("Didn't quit")
@@ -532,6 +548,7 @@ class Platform():
         operator is able to move the dobot by wells, load and unload the
         gripper, set and control pressures, and print defined arrays
         '''
+        section_break()
         print("Driving platform...")
         while True:
             try:
@@ -613,6 +630,8 @@ class Platform():
             elif c == "q":
                 print('Quit (y/n)')
                 if ask_yes_no():
+                    print('Quitting...')
+                    section_break()
                     return
                 else:
                     print("Didn't quit")
@@ -625,9 +644,10 @@ class Platform():
         return
 
     def init_ard(self,port):
-        print('Initizing arduino...')
+        print('\nInitizing arduino...')
         self.ser = serial.Serial(port=port, baudrate=115200, bytesize=8, parity='N', stopbits=1, xonxoff=0, timeout=0)
         time.sleep(1)
+        print('Arduino is connected')
         return
 
     def print_droplets(self,freq,pulse_width,refuel_width,count):
@@ -675,13 +695,13 @@ class Platform():
         Initiates the Precigenome pressure regulator and the two different
         channels used
         '''
-        print("Connecting pressure regulator...")
+        print("\nConnecting pressure regulator...")
         self.mcfs = PGMFC()
         self.mcfs.monitor_start(span=100)
         time.sleep(1)
         self.channel_pulse = self.mcfs[1]
         self.channel_refuel = self.mcfs[2]
-        print('Successful connection')
+        print('Pressure regulator is connected')
 
         self.set_pressure(2, 0.3)
         return
