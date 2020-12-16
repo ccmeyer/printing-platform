@@ -575,22 +575,22 @@ class Platform():
             #     self.close_valves()
 
             elif c == '1':
-                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-            elif c == '2':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+            elif c == '2':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
             elif c == '3':
-                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
-            elif c == '4':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+            elif c == '4':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
 
             elif c == '6':
-                self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-            elif c == '7':
                 self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+            elif c == '7':
+                self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
             elif c == '8':
-                self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-            elif c == '9':
                 self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+            elif c == '9':
+                self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
 
             elif c == "q":
                 print('Quit (y/n)')
