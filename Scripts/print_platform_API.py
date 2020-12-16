@@ -133,8 +133,8 @@ class Platform():
         dType.SetQueuedCmdClear(self.api)
 
         #Async Motion Params Setting
-        dType.SetHOMEParams(self.api, 200, 0, 100, 0, isQueued = 1)
-        dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
+        dType.SetHOMEParams(self.api, 200, 0, 150, 0, isQueued = 1)
+        dType.SetPTPJointParams(self.api, 100, 100, 100, 100, 100, 100, 100, 100, isQueued = 1)
         dType.SetPTPCommonParams(self.api, 100, 100, isQueued = 1)
 
         self.activate_gripper()
