@@ -139,6 +139,7 @@ class Platform():
 
         self.activate_gripper()
         self.get_plate_data()
+        self.location = 'home'
         self.current_row = 0
         self.current_column = 0
 
@@ -164,6 +165,7 @@ class Platform():
         self.reset_dobot_position()
         last_index = dType.SetHOMECmd(self.api, temp = 0, isQueued = 1)
         run_cmd(self.api,last_index)
+        self.location = 'home'
         return
 
     def reset_dobot_position(self):
@@ -175,6 +177,7 @@ class Platform():
         if not ask_yes_no():
             return
         self.move_dobot(200,0,150)
+        self.location = 'home'
         return
 
     def gen_trans_matrix(self):
@@ -337,7 +340,15 @@ class Platform():
         printing_calibrations.json
         '''
         print('Moving to loading position...')
+        if self.location == 'loading':
+            print('Already in loading position')
+            return
+        elif self.location == 'calibration':
+            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+            self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+            self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
+        self.location = 'loading'
         return
 
     def move_to_tube_position(self):
@@ -345,8 +356,18 @@ class Platform():
         Moves the Dobot to the tube position specified in
         printing_calibrations.json
         '''
-        print('Moving to tube position...')
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'],self.tube_position['z'])
+        print('Moving to calibration position...')
+        if self.location == 'calibration':
+            print('Already in calibration position')
+            return
+        elif self.location == 'plate':
+            self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
+        self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
+
+        self.location = 'calibration'
         return
 
     def move_to_print_position(self):
@@ -354,9 +375,7 @@ class Platform():
         Moves the Dobot to well A1 specified in the plate metadata file
         '''
         print('Moving to printing position...')
-        self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
-        self.current_row = 0
-        self.current_column = 0
+        self.move_to_well(0,0)
         return
 
     def move_dobot(self,x,y,z):
@@ -377,9 +396,13 @@ class Platform():
         Moves the Dobot to a defined well while checking that the well is within
         the bounds of the plate
         '''
+        if self.location == 'calibration' or self.location == 'home':
+            self.move_to_loading_position()
+
         if row <= self.max_rows and column <= self.max_columns and row >= 0 and column >= 0:
             target_coords = self.get_well_coords(row,column)
             self.move_dobot(target_coords['x'],target_coords['y'],target_coords['z'])
+            self.location = 'plate'
             self.current_row = row
             self.current_column = column
             return
@@ -471,9 +494,6 @@ class Platform():
                     print("Didn't quit")
             else:
                 print("not valid")
-            # except:
-            #     print('not valid')
-            # print('Current position: x={}\ty={}\tz={}'.format(self.x,self.y,self.z))
             self.move_dobot(x,y,z)
 
     def print_array(self):
@@ -502,10 +522,6 @@ class Platform():
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(20,3000,50000,line['Droplet'])
             print('On {} out of {}'.format(index,len(arr)))
-
-
-
-
 
 
 
@@ -566,6 +582,8 @@ class Platform():
                 self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
             elif c == '.':
                 self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
+            elif c == 'n':
+                self.dobot_manual_drive()
 
             # elif c == ']':
             #     self.refuel_open()
