@@ -413,9 +413,9 @@ class Platform():
             print('Already in loading position')
             return
         elif self.location == 'calibration':
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
-            self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-            self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
+            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
+            # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+            self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.location = 'loading'
         return
@@ -435,9 +435,9 @@ class Platform():
             return
         elif self.location == 'plate':
             self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
-        self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
+        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
 
         self.location = 'calibration'
@@ -453,14 +453,14 @@ class Platform():
             print('Already above calibration position')
             return
         elif self.location == 'calibration':
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
             self.location = 'above_calibration'
             return
         elif self.location == 'plate':
             self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
-        self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
+        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
 
         self.location = 'above_calibration'
         return
@@ -470,14 +470,12 @@ class Platform():
         Moves the Dobot to well A1 specified in the plate metadata file
         '''
         print('\nMoving to printing position...')
-        if self.location == 'calibration' or self.location == 'home':
+        if self.location == 'calibration' or self.location == 'home' or self.location == 'above_calibration':
             self.move_to_loading_position()
         self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
         self.current_row = 0
         self.current_column = 0
-
         self.location = 'plate'
-        # self.move_to_well(0,0)
         return
 
     def move_dobot(self,x,y,z):
