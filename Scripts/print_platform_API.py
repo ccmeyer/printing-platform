@@ -77,11 +77,59 @@ def get_coords(coords):
     return np.array(list(coords.values()))
 
 def section_break():
-    print("\n==================================\n")
+    print("\n==================================================================\n")
+    return
+
+def print_title(title):
+    section_break()
+    print(title)
+    section_break()
     return
 
 
 ##### MAIN CLASS DEFINITION  ######
+
+class PrinterHead():
+    '''
+    The printer head class is used to store the calibrations unique to a specific
+    printer head / reagent pair
+    '''
+
+    def __init__(self):
+        print('Created new printer head')
+        self.pred_print_pressure = 2
+        self.pred_refuel_pressure = 0.3
+        self.target_volume = 60
+
+
+    def set_chip_id(self):
+        self.id = input('Enter printer head id: ')
+
+    def set_channel_volume(self):
+        self.channel_volume = float(input('Enter channel volume: '))
+
+    def set_reagent(self):
+        self.reagent = input('Enter reagent name: ')
+
+    def set_density(self):
+        self.density = float(input('Enter reagent density: '))
+
+    def get_all_info(self):
+        self.set_chip_id()
+        self.set_channel_volume()
+        self.set_reagent()
+        self.set_density()
+        return
+
+    def set_resistances(self,refuel,total,nozzle):
+        self.refuel_resistance = refuel
+        self.total_resistance = total
+        self.nozzle_resistance = nozzle
+        return
+
+    def set_droplet_volume(self,volume):
+        self.real_volume = volume
+
 
 class Platform():
     '''
@@ -97,7 +145,9 @@ class Platform():
         self.refuel_width = 47000
 
         self.test_droplet_count = 5
-        self.chamber_volume = 7.5
+        self.default_chamber_volume = 7.5
+
+        self.printer_heads = {}
 
     def initiate_all(self):
         section_break()
@@ -327,11 +377,15 @@ class Platform():
         self.plate_data['bottom_right'] = self.bottom_right
         self.plate_data['bottom_left'] = self.bottom_left
 
+        print(self.plate_data)
+
         print("Write print position to file? (y/n)")
         if not ask_yes_no(): return
         with open(self.plate_file_path, 'w') as outfile:
             json.dump(self.plate_data, outfile)
         print("Plate data saved")
+
+        self.get_plate_data()
 
     def write_printing_calibrations(self):
         '''
@@ -360,7 +414,7 @@ class Platform():
             return
         elif self.location == 'calibration':
             self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
-            # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+            self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
             self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.location = 'loading'
@@ -375,14 +429,40 @@ class Platform():
         if self.location == 'calibration':
             print('Already in calibration position')
             return
+        elif self.location == "above_calibration":
+            self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
+            self.location = 'calibration'
+            return
         elif self.location == 'plate':
             self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
-        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+        self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
 
         self.location = 'calibration'
+        return
+
+    def move_above_tube_position(self):
+        '''
+        Moves the Dobot to the tube position specified in
+        printing_calibrations.json
+        '''
+        print('\nMoving to calibration position...')
+        if self.location == 'above_calibration':
+            print('Already above calibration position')
+            return
+        elif self.location == 'calibration':
+            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+            self.location = 'above_calibration'
+            return
+        elif self.location == 'plate':
+            self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
+        self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+
+        self.location = 'above_calibration'
         return
 
     def move_to_print_position(self):
@@ -390,7 +470,14 @@ class Platform():
         Moves the Dobot to well A1 specified in the plate metadata file
         '''
         print('\nMoving to printing position...')
-        self.move_to_well(0,0)
+        if self.location == 'calibration' or self.location == 'home':
+            self.move_to_loading_position()
+        self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
+        self.current_row = 0
+        self.current_column = 0
+
+        self.location = 'plate'
+        # self.move_to_well(0,0)
         return
 
     def move_dobot(self,x,y,z):
@@ -400,7 +487,7 @@ class Platform():
         print('Dobot moving...',end='')
         last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVLXYZMode, x,y,z,0, isQueued = 1)
         run_cmd(self.api,last_index)
-        self.current_coords = {'x':x,'y':y,'z':z}
+        self.current_coords = {'x':float(x),'y':float(y),'z':float(z)}
         print('Current position: x={}\ty={}\tz={}'.format(round(x,2),round(y,2),round(z,2)))
         return
 
@@ -593,21 +680,22 @@ class Platform():
                 self.pulse_test()
             elif c == 'b':
                 self.resistance_testing()
-            elif c == ']':
-                self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
-            elif c == ';':
-                self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
-            elif c == '.':
-                self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
+            elif c == 'r':
+                self.record_flow()
+            # elif c == ']':
+            #     self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
+            # elif c == ';':
+            #     self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
+            # elif c == '.':
+            #     self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
             elif c == 'n':
                 self.dobot_manual_drive()
-
-            # elif c == ']':
-            #     self.refuel_open()
-            # elif c == ';':
-            #     self.pulse_open()
-            # elif c == '.':
-            #     self.close_valves()
+            elif c == ']':
+                self.refuel_open()
+            elif c == ';':
+                self.pulse_open()
+            elif c == '.':
+                self.close_valves()
 
             elif c == '1':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
@@ -759,18 +847,27 @@ class Platform():
         Directs the operator through the calibration process that is defined in
         the printing_calibration_methods.md file
         '''
-        print('Resistance testing mode...')
-        print('Current overflow chamber volume: ',self.chamber_volume)
-        print('Prepare chip for testing')
+        print_title('Resistance testing mode...')
+
+        chip = PrinterHead()
+        chip.get_all_info()
+
+        self.set_pressure(chip.pred_print_pressure, chip.pred_refuel_pressure)
+        self.pressure_on()
+
         click_counter = 0
         step = 'start'
         refuel_counter = 0
         pulse_counter = 0
         refuel_resistances = []
-        pulse_resistances = []
-
+        total_resistances = []
         refuel_times = []
         pulse_times = []
+
+        self.move_to_tube_position()
+
+        print('Prepare chip for testing:\tx:Refuel\tc:Print\tz:Next\n')
+
 
         valid = True
 
@@ -782,7 +879,7 @@ class Platform():
                 print('Not a valid input')
                 valid = False
             if valid:
-                print(c)
+                # print(c)
                 if c == "x":
                     if step == 'refuel' or step == 'start':
                         self.refuel_test()
@@ -794,16 +891,19 @@ class Platform():
                 elif c == 'z':
                     if step == 'start':
                         step = "refuel"
+                        self.move_above_tube_position()
+                        input('\nZero the scale and press Enter\n')
+                        self.move_to_tube_position()
                     elif step == 'refuel':
-                        resistance = self.calc_resistance(click_counter, self.test_droplet_count,self.refuel_width,self.refuel_pressure,self.chamber_volume)
+                        resistance = self.calc_resistance(click_counter, self.test_droplet_count,self.refuel_width,self.refuel_pressure,self.default_chamber_volume)
                         refuel_resistances.append(round((resistance * 10**-11),2))
                         refuel_times.append(click_counter * self.test_droplet_count * self.refuel_width * 10**-3)
                         refuel_counter += 1
                         step = 'pulse'
                         print('Calculated resistance = ',resistance)
                     else:
-                        resistance = self.calc_resistance(click_counter, self.test_droplet_count,self.pulse_width,self.pulse_pressure,self.chamber_volume)
-                        pulse_resistances.append(round((resistance * 10**-11),2))
+                        resistance = self.calc_resistance(click_counter, self.test_droplet_count,self.pulse_width,self.pulse_pressure,self.default_chamber_volume)
+                        total_resistances.append(round((resistance * 10**-11),2))
                         pulse_times.append(click_counter * self.test_droplet_count * self.pulse_width * 10**-3)
                         pulse_counter += 1
                         step = 'refuel'
@@ -815,28 +915,28 @@ class Platform():
                     self.pressure_on()
                 elif c == 'i':
                     self.pressure_off()
-                elif c == 'u':
-                    self.set_pressure(10, 10)
+                # elif c == 'u':
+                #     self.set_pressure(10, 10)
                 elif c == 'j':
                     self.set_pressure(2, 0.3)
 
                 elif c == '1':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-                elif c == '2':
                     self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+                elif c == '2':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
                 elif c == '3':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
-                elif c == '4':
                     self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+                elif c == '4':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
 
                 elif c == '6':
-                    self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-                elif c == '7':
                     self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+                elif c == '7':
+                    self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
                 elif c == '8':
-                    self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-                elif c == '9':
                     self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+                elif c == '9':
+                    self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
 
                 elif c == "q":
                     print('Quit resistance testing mode? (y/n)')
@@ -848,13 +948,98 @@ class Platform():
                     print("Not a valid input")
             if pulse_counter == 3:
                 print('Refuel resistances:\t{}\t{}\t{}'.format(refuel_resistances[0],refuel_resistances[1],refuel_resistances[2]))
-                print('Pulse resistances:\t{}\t{}\t{}'.format(pulse_resistances[0],pulse_resistances[1],pulse_resistances[2]))
+                print('Total resistances:\t{}\t{}\t{}'.format(total_resistances[0],total_resistances[1],total_resistances[2]))
                 print('Refuel times:\t{}\t{}\t{}'.format(refuel_times[0],refuel_times[1],refuel_times[2]))
                 print('Pulse times:\t{}\t{}\t{}'.format(pulse_times[0],pulse_times[1],pulse_times[2]))
                 print('\nAverages:')
-                print('Resistances:\tRefuel = {}\tPulse = {}'.format(round(np.mean(refuel_resistances),2),round(np.mean(pulse_resistances),2)))
-                print('Times:\tRefuel = {}\tPulse = {}'.format(round(np.sum(refuel_times),2),round(np.sum(pulse_times),2)))
+
+                refuel_res_avg = np.mean(refuel_resistances)
+                total_res_avg = np.mean(total_resistances)
+                refuel_time_sum = np.sum(refuel_times)
+                pulse_time_sum = np.sum(pulse_times)
+
+                print('Resistances:\tRefuel = {}\tTotal = {}'.format(round(refuel_res_avg,2),round(total_res_avg,2)))
+                print('Times:\tRefuel = {}\tPulse = {}'.format(round(refuel_time_sum,2),round(pulse_time_sum,2)))
+
+                self.move_above_tube_position()
+                final_mass = float(input('Enter the mass: '))
+                final_volume = final_mass / chip.density
+
+                nozzle_resistance = (self.pulse_pressure*6894 * pulse_time_sum/1000) / (final_volume/10**9)
+                print('Nozzle resistance = ',nozzle_resistance)
+                chip.set_resistances(refuel_res_avg,total_res_avg,nozzle_resistance)
+
+                chip.pred_print_pressure = (((chip.target_volume*10**-9)*nozzle_resistance) / (self.pulse_width/1000))/6894
+
+                pulse_per_sec = (self.pulse_width/10**6) * self.frequency
+                chip.pred_refuel_pressure = ((chip.pred_print_pressure)*pulse_per_sec*chip.refuel_resistance) / (chip.total_resistance*(1-pulse_per_sec))
+
+                self.set_pressure(chip.pred_print_pressure,chip.pred_refuel_pressure)
+                self.pressure_on()
+                self.move_to_tube_position()
+
+                print('\nCheck the refuel pressure\n')
+                hold = True
+                while hold:
+                    try:
+                        c = msvcrt.getch().decode()
+                        valid = True
+                    except:
+                        print('Not a valid input')
+                        valid = False
+                    if valid:
+                        if c == "x":
+                            self.refuel_test()
+                        elif c == "c":
+                            self.pulse_test()
+                        elif c == 'z':
+                            self.print_droplets(20,3000,50000,10)
+
+                        elif c == '1':
+                            self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+                        elif c == '2':
+                            self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+                        elif c == '3':
+                            self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+                        elif c == '4':
+                            self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+
+                        elif c == '6':
+                            self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+                        elif c == '7':
+                            self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+                        elif c == '8':
+                            self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+                        elif c == '9':
+                            self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+
+                        elif c == "q":
+                            print('Continue to testing droplet volume? (y/n)')
+                            if ask_yes_no():
+                                hold = False
+                            else:
+                                print("Didn't quit")
+                        else:
+                            print("Not a valid input")
+
+                chip.real_refuel_pressure = self.refuel_pressure
+
+                self.move_above_tube_position()
+                input('\nZero the scale and press Enter\n')
+                self.move_to_tube_position()
+                droplet_count = 100
+                print("Printing {} droplets...".format(droplet_count))
+
+                self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,droplet_count)
+                test_mass = float(input('\nType in the mass press Enter\n'))
+                test_volume = test_mass / chip.density
+
+                chip.set_droplet_volume(test_volume / droplet_count)
+
+                print('\nCurrent droplet volume = {}\tPercent Diff = {}\n'.format(chip.real_volume, ((chip.real_volume + chip.target_volume) / chip.target_volume)*100))
+
                 return
+
 
     def record_flow(self):
         pulse_flow_data = []
