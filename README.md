@@ -1,5 +1,8 @@
 # printing-platform
 
-<p align="center">
-  <img src="./Images/Fig_2.pdf?raw=true" width="350" title="hover text">
-</p>
+## sub header
+Here is some sample text
+
+![ScreenShot](/Images/Fig_2.pdf)
+
+other text
