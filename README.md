@@ -1,10 +1,15 @@
-# uCD microfluidic printing system
-### A system for high throughput reaction generation using sub-microliter printing
+# &#181;CD microfluidic printing system
+### A system for high throughput reaction generation using sub-microliter droplet printing
 
 <br/>
 
 ## Overview
-The system detailed in this repository was originally described in the paper: "__________". This repository includes the necessary components to recreate the system shown in **Figure 1**. This repository includes the following components:
+
+<p align="center">
+  <img src="./Images/general_printing.png" width="500" title="Printer head design">
+</p>
+
+The system detailed in this repository was originally described in the paper: "__________" and built upon work described in Wang, J. et al. (2019) Microfluidic cap-to-dispense (μCD): a universal microfluidic–robotic interface for automated pipette-free high-precision liquid handling. Lab Chip 19:3405-3415. This repository includes the necessary components to recreate the system shown in **Figure 1**. This repository includes the following components:
 * Description of the underlying theory behind the system and how to optimize its use [link]
 * A parts list and CAD files to 3D print or laser cut the required components to assemble the system [link]
 * Scripts required to control all components of the system [link]
@@ -43,13 +48,14 @@ A detailed description of the components and assembly can be found [here]
   <strong>Figure 2</strong> Schematic depicting the printer head design. A) Labels the components of the printer head. B) Overlay of <br>the parameters of the system. Tunable parameters: purple, fixed parameters: red, unknown parameters: black.
 </p>
 
-The system is built upon microfluidic adaptive printing where when force, in this case pressure, is applied to liquid in small bursts it forces the liquid to be ejected through a small exit port (<100 um) as nanoliter sized droplets. 
+The system is built upon the concept of microfluidic adaptive printing. The core principle is to apply bursts of force to liquid, squeezing it through a small ejection port (<100 &#181;m) which causes it to pinch off as a nanoliter scale droplet. In our instantiation of this system we use air pressure to exert the force and a small nozzle fabricated out of PMMA to serve as the exit port. The primary variables governing the activity of the system are highlighted in **Figure 2** and are explained in detail [here].
 
 <br/>
 
 ## Platform API
 
-<p align="center">
-  <img src="./Images/valve_control_circuit.png?raw=true" width="350" title="Valve control circuit">
-</p>
+The bulk of the API is included under the umbrella of the `Platform` class. This class includes the functions to intitially connect to and control all of the components that comprise the system. The general tasks that are routinely needed have been divided to make the customization of new protocols accessible. Several manual drive modes have been included to allow for the control of the system from the keyboard. This allows for the quick adaption of processes by the user to prototype protocols or run full experiments. 
 
+The other class is the `PrinterHead` class which is used to track individual printer heads. This makes the tracking of volumes of the reagent are required parameters that are unique to each printer head and reagent to be tracked easily. 
+
+The major steps required to utilize the code is detailed [here]
