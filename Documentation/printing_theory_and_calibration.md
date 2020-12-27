@@ -4,7 +4,15 @@
   <img src="../Images/printer_head_design.png" width="800" title="Printer head design">
 </p>
 
-The complicated underlying fluid dynamics of the droplet printing system can be fairly well modeled using a simple fluid flow euqation relating pressure flow and resistance
+The complicated underlying fluid dynamics of the droplet printing system can be fairly well modeled using a simple fluid flow euqation relating pressure, flow, and resistance.
+
+<p align="center">
+  <img src="../Images/Basic_equations.png?raw=true" width="200" title="Equation 1">
+</p>
+
+The 
+
+<br>
 
 # Calibration Theory
 
