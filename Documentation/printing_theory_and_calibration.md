@@ -90,7 +90,7 @@ With the calculated nozzle resistance, the required printing pressure can be cal
   <img src="../Images/Eq_5.png?raw=true" title="Equation 5">
 </p>
 
-Once the printing pressure is determined, the refuel pressure can be set to account for the displaced volume during printing. Using the calculated refuel and total printing resistances in Equation 5 allows for the calculation of the necessary refuel pressure. In Equation 5, f represents the frequency of printing and t represents the duration of each printing pulse. It is recommended to keep these parameters constant and only adjust the pressures as there are unknown changes in the resistance due to changes in those parameters. We use a pulse width of 3 msec and a frequency of 20 Hz. 
+Once the printing pressure is determined, the refuel pressure can be set to account for the displaced volume during printing. Using the calculated refuel and total printing resistances in Equation 5 allows for the calculation of the necessary refuel pressure. In Equation 5, f represents the frequency of printing and t represents the duration of each printing pulse. To maximize the activity of the system we have set the refuel pressure to be active whenever the printing pressure is not applied. It is recommended to keep these parameters constant and only adjust the pressures as there are unknown changes in the resistance due to changes in those parameters. We use a pulse width of 3 msec and a frequency of 20 Hz. 
 
 <br>
 
