@@ -38,7 +38,7 @@ The printing platform is comprised of several different components. The three-di
 
 1. Connect the gripper attachment to the Dobot 
 
-2. 3D print and attach the 3D printed gripper adapters, shown in **Figure 2**, to the end effector.
+2. 3D print the two different gripper adapters for both the refuel and printing side. Attach the gripper adapters, shown in **Figure 2**, to the end effector.
 
 <p align="center">
   <img src="../Images/Gripper_attachment.png?raw=true" width="350" title="Gripper attachments">
@@ -78,7 +78,7 @@ The printing platform is comprised of several different components. The three-di
 
 2.	The channel layer can be fabricated using a CO2 laser to ablate microchannels in double-sided membrane adhesive. The chosen channel width was 200 μm.	A wide range of channel widths and lengths can be used. Choose the width based on the desired channel resistance. 
 
-3.	The bulk component of the printer head, which contains the connections to the pressure inlets and the reagent reservoir, is fabricated by 3D printing (see Note 16). We used stereolithography (SLA) printing with surgical guide photosensitive resin to generate the printer heads and the gripper adapters. It is critical that these printer heads are watertight, transparent and have smooth channels for proper use. These qualities are very difficult to achieve with standard fused deposition modeling (FDM) printers as there are many imperfections at the junctions between layers.
+3.	The bulk component of the printer head, which contains the connections to the pressure inlets and the reagent reservoir, is fabricated by 3D printing. We used stereolithography (SLA) printing with surgical guide photosensitive resin to generate the printer heads and the gripper adapters. It is critical that these printer heads are watertight, transparent and have smooth channels for proper use. These qualities are very difficult to achieve with standard fused deposition modeling (FDM) printers as there are many imperfections at the junctions between layers.
 
 4.	The full printer head is assembled stepwise:
 
