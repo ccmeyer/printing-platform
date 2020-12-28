@@ -10,9 +10,11 @@
 </p>
 
 The system detailed in this repository was originally described in the paper: "__________" and built upon work described in Wang, J. et al. (2019) Microfluidic cap-to-dispense (μCD): a universal microfluidic–robotic interface for automated pipette-free high-precision liquid handling. Lab Chip 19:3405-3415. This repository includes the necessary components to recreate the system shown in **Figure 1**. This repository includes the following components:
-* Description of the underlying theory behind the system and how to optimize its use [link]
-* A parts list and CAD files to 3D print or laser cut the required components to assemble the system [link]
-* Scripts required to control all components of the system [link]
+* A parts list, CAD files to 3D print or laser cut the required components, and assembly instructions [link](https://github.com/ccmeyer/printing-platform/blob/main/Documentation/assembly_description.md).
+
+* Description of the underlying theory behind the system and how to optimize its use [link](https://github.com/ccmeyer/printing-platform/blob/main/Documentation/printing_theory_and_calibration.md).
+
+* Description of the API required to control all components of the system [link](https://github.com/ccmeyer/printing-platform/blob/main/Documentation/API_documentation.md).
 
 <br/>
 
@@ -34,7 +36,7 @@ The printing platform is comprised of several critical components:
 * The Arduino and valves are used to apply the pressures in bursts for printing and refueling.
 * The storage and printing is carried out in the disposable microfluidic printing heads.
 
-A detailed description of the components and assembly can be found [here]
+A detailed description of the components and assembly can be found [here](https://github.com/ccmeyer/printing-platform/blob/main/Documentation/assembly_description.md).
 
 <br/>
 
@@ -48,7 +50,7 @@ A detailed description of the components and assembly can be found [here]
   <strong>Figure 2</strong> Schematic depicting the printer head design. A) Labels the components of the printer head. B) Overlay of <br>the parameters of the system. Tunable parameters: purple, fixed parameters: red, unknown parameters: black.
 </p>
 
-The system is built upon the concept of microfluidic adaptive printing. The core principle is to apply bursts of force to liquid, squeezing it through a small ejection port (<100 &#181;m) which causes it to pinch off as a nanoliter scale droplet. In our instantiation of this system we use air pressure to exert the force and a small nozzle fabricated out of PMMA to serve as the exit port. The primary variables governing the activity of the system are highlighted in **Figure 2** and are explained in detail [here].
+The system is built upon the concept of microfluidic adaptive printing. The core principle is to apply bursts of force to liquid, squeezing it through a small ejection port (<100 &#181;m) which causes it to pinch off as a nanoliter scale droplet. In our instantiation of this system we use air pressure to exert the force and a small nozzle fabricated out of PMMA to serve as the exit port. The primary variables governing the activity of the system are highlighted in **Figure 2** and are explained in detail [here](https://github.com/ccmeyer/printing-platform/blob/main/Documentation/printing_theory_and_calibration.md).
 
 <br/>
 
@@ -58,4 +60,7 @@ The bulk of the API is included under the umbrella of the `Platform` class. This
 
 The other class is the `PrinterHead` class which is used to track individual printer heads. This makes the tracking of volumes of the reagent are required parameters that are unique to each printer head and reagent to be tracked easily. 
 
-The major steps required to utilize the code is detailed [here]
+The major steps required to utilize the code is detailed [here](https://github.com/ccmeyer/printing-platform/blob/main/Documentation/API_documentation.md).
+
+<br/>
+
