@@ -1,20 +1,35 @@
-# Printing Theory
+# Printing theory
 
 <p align="center">
   <img src="../Images/printer_head_design.png" width="800" title="Printer head design">
 </p>
 
-The complicated underlying fluid dynamics of the droplet printing system can be fairly well modeled using a simple fluid flow euqation relating pressure, flow, and resistance.
-
 <p align="center">
-  <img src="../Images/Basic_equations.png?raw=true" width="200" title="Equation 1">
+  <strong>Figure 1</strong> Schematic depicting the printer head design. A) Labels the components of the printer head. B) Overlay of the parameters of the system. Tunable parameters: purple, fixed parameters: red, unknown parameters: black.
 </p>
 
-The 
+
+The complicated underlying fluid dynamics of the droplet printing system can be modeled using a simple fluid flow equation relating pressure, flow, and resistance.
+
+<p align="center">
+  <img src="../Images/Basic_equations.png?raw=true" width="200" title="Basic equations">
+</p>
+
+In the above equations Q is flow, P is pressure, R is resistance, &#181; is viscoity, L is length, and r is the radius of the channel. At the scale of this system the interfacial tension and surface roughness and other unknown factors cause the resistance to not follow this idealized description. However, this equation helps depict the variables that the resistance, and therefore flow, depends on. Specifically the viscosity of the reagent and the radius of the nozzle. The major variables of this system are shown in **Figure 1** using the same notation as above.
+
+While in an ideal world the properties of all reagents would be the same and the fabrication would be perfect, in reality these are often not true. The viscosity of different reagents can vary starkly such as comparing cell lysate to water. The fabrication, especially of the small nozzle, often varies and when the resistance of the nozzle is dependent on the radius of the hole to the fourth power small imperfections lead to deviations from the expected droplet volume. 
+
+To address this issue, a calibration method has been developed to rapidly account for the differences in the printer head and the reagent simultaneouslly to achieve nanoliter resolution.
 
 <br>
 
-# Calibration Theory
+# Calibration theory
+
+The fundamental idea of this calibration process is to leverage the fixed and tunable parameters to both determine and then account for the unknown parameters. The parameters of the system are: Unknown - Channel and nozzle resistances; Fixed - Overflow chamber volume; Tunable - Refuel and printing pressures. The primary objective of this process is to determine the printing pressure needed to eject the desired droplet volume and the refueling pressure to replenish the overflow chamber for continuous printing.
+
+The pressures can be determined using a simple stepwise procedure beginning by calculating the unknown channel, total, and nozzle resistances
+
+### Refuel resistance
 
 <p align="center">
   <img src="../Images/calibration_refuel.png?raw=true" width="600" title="Refuel">
@@ -24,6 +39,12 @@ The
   <img src="../Images/Eq_1.png?raw=true" title="Equation 1">
 </p>
 
+By applying small bursts of refuel pressure, the time required to fill the volume of the overflow channel using a set pressure can be determined. Plugging these values into Equation 1 gives the resistance of the channel. 
+
+<br>
+
+### Total printing resistance
+
 <p align="center">
   <img src="../Images/calibration_total.png?raw=true" width="600" title="Total">
 </p>
@@ -32,6 +53,8 @@ The
   <img src="../Images/Eq_2.png?raw=true" title="Equation 2">
 </p>
 
+
+### Nozzle resistance
 <p align="center">
   <img src="../Images/calibration_print.png?raw=true" width="600" title="Print">
 </p>
