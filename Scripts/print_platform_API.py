@@ -7,6 +7,7 @@ import sys
 import msvcrt
 import json
 import numpy as np
+import pandas as pd
 import math
 import cv2
 import glob
@@ -115,9 +116,9 @@ class PrinterHead():
         self.density = float(input('Enter reagent density: '))
 
     def get_all_info(self):
-        self.set_chip_id()
+        # self.set_chip_id()
         self.set_channel_volume()
-        self.set_reagent()
+        # self.set_reagent()
         self.set_density()
         return
 
@@ -242,6 +243,7 @@ class Platform():
         print("Reset Dobot position? (y/n)")
         if not ask_yes_no():
             return
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.move_dobot(self.home_position['x'],self.home_position['y'],self.home_position['z'])
         self.location = 'home'
         return
@@ -680,12 +682,8 @@ class Platform():
                 self.resistance_testing()
             elif c == 'r':
                 self.record_flow()
-            # elif c == ']':
-            #     self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
-            # elif c == ';':
-            #     self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
-            # elif c == '.':
-            #     self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
+            elif c == 'P':
+                self.print_array()
             elif c == 'n':
                 self.dobot_manual_drive()
             elif c == ']':
@@ -883,15 +881,18 @@ class Platform():
                         self.refuel_test()
                         click_counter += 1
                 elif c == "c":
-                    if step == 'pulse' or step == 'start':
+                    if step == 'pulse' or step == 'start' or step == 'empty':
                         self.pulse_test()
                         click_counter += 1
                 elif c == 'z':
                     if step == 'start':
-                        step = "refuel"
+                        step = 'empty'
                         self.move_above_tube_position()
                         input('\nZero the scale and press Enter\n')
                         self.move_to_tube_position()
+                    elif step == 'empty':
+                        pulse_times.append(click_counter * self.test_droplet_count * self.pulse_width * 10**-3)
+                        step = 'refuel'
                     elif step == 'refuel':
                         resistance = self.calc_resistance(click_counter, self.test_droplet_count,self.refuel_width,self.refuel_pressure,self.default_chamber_volume)
                         refuel_resistances.append(round((resistance * 10**-11),2))
@@ -981,6 +982,7 @@ class Platform():
                 while hold:
                     try:
                         c = msvcrt.getch().decode()
+                        print(c)
                         valid = True
                     except:
                         print('Not a valid input')
@@ -992,6 +994,7 @@ class Platform():
                             self.pulse_test()
                         elif c == 'z':
                             self.print_droplets(20,3000,50000,10)
+                            print('completed test print')
 
                         elif c == '1':
                             self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
@@ -1032,9 +1035,9 @@ class Platform():
                 test_mass = float(input('\nType in the mass press Enter\n'))
                 test_volume = test_mass / chip.density
 
-                chip.set_droplet_volume(test_volume / droplet_count)
+                chip.set_droplet_volume((test_volume / droplet_count) *1000)
 
-                print('\nCurrent droplet volume = {}\tPercent Diff = {}\n'.format(chip.real_volume, ((chip.real_volume + chip.target_volume) / chip.target_volume)*100))
+                print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
 
                 return
 
