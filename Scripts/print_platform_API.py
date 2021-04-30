@@ -30,13 +30,15 @@ def run_cmd(api,last_index):
     '''
     Executes the dobot's queued commands
     '''
+    lastQueuedIndex = dType.SetWAITCmd(api, 0.1, isQueued=1)[0]
     dType.SetQueuedCmdStartExec(api)
     #Wait for Executing Last Command
     while last_index[0] > dType.GetQueuedCmdCurrentIndex(api)[0]:
-        dType.dSleep(100)
+        dType.dSleep(10)
 
     #Stop to Execute Command Queued
-    dType.SetQueuedCmdStopExec(api)
+    # dType.SetQueuedCmdStopExec(api)
+    dType.SetQueuedCmdClear(api)
     return
 
 
@@ -155,7 +157,7 @@ class Platform():
         print('Initializing all components')
         self.init_pressure()
         self.init_dobot()
-        self.init_ard('COM6')
+        self.init_ard('COM4')
         print('All components are connected')
         section_break()
         return
@@ -179,14 +181,21 @@ class Platform():
         '''
         print('\nConnecting the Dobot...\n')
         self.api = dType.load()
-        self.CON_STR = {
+        CON_STR = {
             dType.DobotConnect.DobotConnect_NoError:  "DobotConnect_NoError",
             dType.DobotConnect.DobotConnect_NotFound: "DobotConnect_NotFound",
             dType.DobotConnect.DobotConnect_Occupied: "DobotConnect_Occupied"}
+        deviceList = dType.SearchDobot(self.api)
+        for index,devicePort in enumerate(deviceList):
+            print(index,devicePort)
+        enteredStr = input("Please enter your target M1 port by index: ")
+        while not enteredStr.isnumeric() or int(enteredStr) >= len(deviceList) or int(enteredStr) < 0:
+            enteredStr = input("The entered command is invalid. Please enter a valid index: ")
+        print("Connecting ", deviceList[int(enteredStr)])
+        state = dType.ConnectDobot(self.api,  deviceList[int(enteredStr)], 115200)[0]
+        print("Connect status:",CON_STR[state])
 
-        self.state = dType.ConnectDobot(self.api, "", 115200)[0]
-        print("Connect Dobot status:",self.CON_STR[self.state])
-        if (self.state != dType.DobotConnect.DobotConnect_NoError):
+        if (state != dType.DobotConnect.DobotConnect_NoError):
             print('failed')
             return
         else:
@@ -198,6 +207,8 @@ class Platform():
         #Clean Command Queued
         dType.SetQueuedCmdClear(self.api)
 
+        print('Starting calibrations')
+
         # Extract all calibration data
         self.calibration_file_path = '../Calibrations/print_calibrations.json'
         with open(self.calibration_file_path) as json_file:
@@ -205,6 +216,8 @@ class Platform():
         self.home_position = self.calibration_data['home_position']
         self.loading_position = self.calibration_data['loading_position']
         self.tube_position = self.calibration_data['tube_position']
+
+        print('-------completed')
 
         #Async Motion Params Setting
         dType.SetHOMEParams(self.api, self.home_position['x'],self.home_position['y'],self.home_position['z'], 0, isQueued = 1)
@@ -724,6 +737,7 @@ class Platform():
 
     def disconnect_dobot(self):
         self.deactivate_gripper()
+        dType.SetQueuedCmdStopExec(self.api)
         dType.DisconnectDobot(self.api)
         return
 
