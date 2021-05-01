@@ -1,4 +1,3 @@
-import Dobot.DobotDllType as dType
 from Precigenome.PGMFC import PGMFC
 
 import time
@@ -11,6 +10,26 @@ import pandas as pd
 import math
 import cv2
 import glob
+
+robot_names = ['Magician','M1']
+for index,name in enumerate(robot_names):
+    print(index,name)
+enteredStr = input("Please enter which robot is in use by index: ")
+while not enteredStr.isnumeric() or int(enteredStr) >= len(robot_names) or int(enteredStr) < 0:
+    enteredStr = input("The entered command is invalid. Please enter a valid index: ")
+if int(enteredStr) == 0:
+    # self._implType = 0
+    import Dobot.DobotDllType as dType
+    # self.api = dType.load()
+    print("Selected the Magician")
+elif int(enteredStr) == 1:
+    # self._implType = 1
+    import DobotM1.DobotDllType as dType
+    from DobotM1.DobotDllType import PTPMode
+    # self.api = dType.load()
+    print("Selected the M1")
+else:
+    print("No options selected")
 
 def ask_yes_no():
     '''
@@ -25,22 +44,6 @@ def ask_yes_no():
             return True
         elif c == 'n':
             return False
-
-def run_cmd(api,last_index):
-    '''
-    Executes the dobot's queued commands
-    '''
-    lastQueuedIndex = dType.SetWAITCmd(api, 0.1, isQueued=1)[0]
-    dType.SetQueuedCmdStartExec(api)
-    #Wait for Executing Last Command
-    while last_index[0] > dType.GetQueuedCmdCurrentIndex(api)[0]:
-        dType.dSleep(10)
-
-    #Stop to Execute Command Queued
-    # dType.SetQueuedCmdStopExec(api)
-    dType.SetQueuedCmdClear(api)
-    return
-
 
 def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
     '''
@@ -180,7 +183,9 @@ class Platform():
         of the loading and tube positions.
         '''
         print('\nConnecting the Dobot...\n')
+
         self.api = dType.load()
+
         CON_STR = {
             dType.DobotConnect.DobotConnect_NoError:  "DobotConnect_NoError",
             dType.DobotConnect.DobotConnect_NotFound: "DobotConnect_NotFound",
@@ -195,41 +200,57 @@ class Platform():
         state = dType.ConnectDobot(self.api,  deviceList[int(enteredStr)], 115200)[0]
         print("Connect status:",CON_STR[state])
 
-        if (state != dType.DobotConnect.DobotConnect_NoError):
+        if (state == dType.DobotConnect.DobotConnect_NoError):
+            dType.SetQueuedCmdStopExec(self.api)
+            dType.SetQueuedCmdClear(self.api)
+        else:
             print('failed')
             return
-        else:
-            print('Successful connection')
 
-        dType.SetDeviceName(self.api,'Dobot Magician')
-        print(dType.GetDeviceName(self.api)[0])
+        # dType.SetDeviceName(self.api,'Dobot Magician')
+        # print(dType.GetDeviceName(self.api)[0])
 
         #Clean Command Queued
-        dType.SetQueuedCmdClear(self.api)
+        # dType.SetQueuedCmdClear(self.api)
 
         print('Starting calibrations')
 
         # Extract all calibration data
-        self.calibration_file_path = '../Calibrations/print_calibrations.json'
-        with open(self.calibration_file_path) as json_file:
-            self.calibration_data =  json.load(json_file)
-        self.home_position = self.calibration_data['home_position']
-        self.loading_position = self.calibration_data['loading_position']
-        self.tube_position = self.calibration_data['tube_position']
+        # self.calibration_file_path = '../Calibrations/print_calibrations.json'
+        # with open(self.calibration_file_path) as json_file:
+        #     self.calibration_data =  json.load(json_file)
+        # self.home_position = self.calibration_data['home_position']
+        # self.loading_position = self.calibration_data['loading_position']
+        # self.tube_position = self.calibration_data['tube_position']
 
         print('-------completed')
 
         #Async Motion Params Setting
-        dType.SetHOMEParams(self.api, self.home_position['x'],self.home_position['y'],self.home_position['z'], 0, isQueued = 1)
-        dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
-        dType.SetPTPCommonParams(self.api, 100, 100, isQueued = 1)
+        # dType.SetHOMEParams(self.api, self.home_position['x'],self.home_position['y'],self.home_position['z'], 0, isQueued = 1)
+        # dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
+        dType.SetPTPCommonParams(self.api, 40, 40, isQueued = 1)
 
-        self.activate_gripper()
-        self.get_plate_data()
+        # self.activate_gripper()
+        # self.get_plate_data()
         self.location = 'home'
         self.current_row = 0
         self.current_column = 0
 
+        return
+
+    def run_cmd(self):
+        '''
+        Executes the dobot's queued commands
+        '''
+        lastQueuedIndex = dType.SetWAITCmd(self.api, 0.1, isQueued=1)[0]
+        dType.SetQueuedCmdStartExec(self.api)
+        #Wait for Executing Last Command
+        while lastQueuedIndex > dType.GetQueuedCmdCurrentIndex(self.api)[0]:
+            dType.dSleep(10)
+
+        #Stop to Execute Command Queued
+        # dType.SetQueuedCmdStopExec(api)
+        dType.SetQueuedCmdClear(self.api)
         return
 
     def home_dobot(self):
@@ -244,7 +265,7 @@ class Platform():
         print("Homing...")
         self.reset_dobot_position()
         last_index = dType.SetHOMECmd(self.api, temp = 0, isQueued = 1)
-        run_cmd(self.api,last_index)
+        self.run_cmd()
         self.location = 'home'
         return
 
@@ -498,8 +519,9 @@ class Platform():
         Takes a set of XYZ coordinates and moves the Dobot to that location
         '''
         print('Dobot moving...',end='')
-        last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVLXYZMode, x,y,z,0, isQueued = 1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVLXYZMode, x,y,z,0, isQueued = 1)
+        last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
+        self.run_cmd()
         self.current_coords = {'x':float(x),'y':float(y),'z':float(z)}
         print('Current position: x={}\ty={}\tz={}'.format(round(x,2),round(y,2),round(z,2)))
         return
@@ -524,24 +546,33 @@ class Platform():
             return
 
     def activate_gripper(self):
-        last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
+        dType.SetIODO(self.api, 17, 1, 1)
+        dType.SetIODO(self.api, 18, 1, 1)
+        self.run_cmd()
         return
 
     def deactivate_gripper(self):
         last_index = dType.SetEndEffectorGripper(self.api,False,False,isQueued=1)
-        run_cmd(self.api,last_index)
+        dType.SetIODO(self.api, 17, 0, 1)
+        dType.SetIODO(self.api, 18, 1, 1)
+        print('softReleasing...')
+        self.run_cmd()
         return
 
     def open_gripper(self):
-        last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
+        dType.SetIODO(self.api, 17, 1, 1)
+        dType.SetIODO(self.api, 18, 0, 1)
+        self.run_cmd()
         print('- Gripper open')
         return
 
     def close_gripper(self):
-        last_index = dType.SetEndEffectorGripper(self.api,True,True,isQueued=1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetEndEffectorGripper(self.api,True,True,isQueued=1)
+        dType.SetIODO(self.api, 17, 0, 1)
+        dType.SetIODO(self.api, 18, 0, 1)
+        self.run_cmd()
         print('- Gripper closed')
         return
 
