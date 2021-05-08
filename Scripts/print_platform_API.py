@@ -160,7 +160,7 @@ class Platform():
         print('Initializing all components')
         self.init_pressure()
         self.init_dobot()
-        self.init_ard('COM4')
+        self.init_ard('COM6')
         print('All components are connected')
         section_break()
         return
@@ -216,22 +216,40 @@ class Platform():
         print('Starting calibrations')
 
         # Extract all calibration data
-        # self.calibration_file_path = '../Calibrations/print_calibrations.json'
-        # with open(self.calibration_file_path) as json_file:
-        #     self.calibration_data =  json.load(json_file)
-        # self.home_position = self.calibration_data['home_position']
-        # self.loading_position = self.calibration_data['loading_position']
-        # self.tube_position = self.calibration_data['tube_position']
+        all_calibrations = glob.glob('../../Calibrations/*print*')
+        print('Possible calibrations:')
+        for i,arr in enumerate(all_calibrations):
+            print('{}: {}'.format(i,arr))
+
+        possible_inputs = [str(i) for i in range(len(all_calibrations))]
+        temp = True
+        while temp:
+            print('Enter desired calibration number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            else:
+                current_path = all_calibrations[int(entry)]
+                temp = False
+        print('Chosen plate: ',current_path)
+        self.calibration_file_path = current_path
+
+        # self.calibration_file_path = '../Calibrations\\print_calibrations_M1.json'
+        with open(self.calibration_file_path) as json_file:
+            self.calibration_data =  json.load(json_file)
+        self.home_position = self.calibration_data['home_position']
+        self.loading_position = self.calibration_data['loading_position']
+        self.tube_position = self.calibration_data['tube_position']
 
         print('-------completed')
 
         #Async Motion Params Setting
         # dType.SetHOMEParams(self.api, self.home_position['x'],self.home_position['y'],self.home_position['z'], 0, isQueued = 1)
         # dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
-        dType.SetPTPCommonParams(self.api, 40, 40, isQueued = 1)
+        dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
 
         # self.activate_gripper()
-        # self.get_plate_data()
+        self.get_plate_data()
         self.location = 'home'
         self.current_row = 0
         self.current_column = 0
@@ -304,7 +322,24 @@ class Platform():
         generates the transformation matrix needed to correct the deviations
         in the Dobot positioning. Also accounts for deviations in the Z dimension
         '''
-        self.plate_file_path = '../Calibrations/shallow-384_well_plate.json'
+        # self.plate_file_path = '../Calibrations\\shallow-384_well_plate_M1.json'
+        all_calibrations = glob.glob('../../Calibrations/*well*')
+        print('Possible plates:')
+        for i,arr in enumerate(all_calibrations):
+            print('{}: {}'.format(i,arr))
+
+        possible_inputs = [str(i) for i in range(len(all_calibrations))]
+        temp = True
+        while temp:
+            print('Enter desired calibration number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            else:
+                current_path = all_calibrations[int(entry)]
+                temp = False
+        print('Chosen plate: ',current_path)
+        self.plate_file_path = current_path
         with open(self.plate_file_path) as json_file:
             self.plate_data =  json.load(json_file)
         self.plate_name = self.plate_data['plate_name']
