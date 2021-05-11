@@ -473,7 +473,6 @@ class Platform():
             json.dump(self.calibration_data, outfile)
         print("Printing calibrations saved")
 
-
     def move_to_loading_position(self):
         '''
         Moves the Dobot to the loading position specified in
@@ -682,7 +681,7 @@ class Platform():
         print("Print an array? (y/n)")
         if not ask_yes_no():
             return
-        all_arrays = glob.glob('../Print_arrays/*.csv')
+        all_arrays = glob.glob('../../Print_arrays/*.csv')
         print('Possible arrays:')
         for i,arr in enumerate(all_arrays):
             print('{}: {}'.format(i,arr))
@@ -704,9 +703,6 @@ class Platform():
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(20,3000,50000,line['Droplet'])
             print('On {} out of {}'.format(index,len(arr)))
-
-
-
 
     def drive_platform(self):
         '''
@@ -751,16 +747,16 @@ class Platform():
                 self.set_pressure(10,10)
             elif c == 'j':
                 self.set_pressure(2,0.3)
-            elif c == 'r':
-                self.pressure_test()
+            # elif c == 'r':
+            #     self.pressure_test()
             elif c == 'x':
                 self.refuel_test()
             elif c == 'c':
                 self.pulse_test()
-            elif c == 'b':
-                self.resistance_testing()
-            elif c == 'r':
-                self.record_flow()
+            # elif c == 'b':
+            #     self.resistance_testing()
+            # elif c == 'r':
+            #     self.record_flow()
             elif c == 'P':
                 self.print_array()
             elif c == 'n':
@@ -825,11 +821,18 @@ class Platform():
         time.sleep(0.2)
 
         current = self.ser.read().decode()
+        time.sleep(0.1)
+        print(current)
+        i = 0
         while current != 'C':
             current = self.ser.read().decode()
-            time.sleep(0.1)
-
+            # print(current)
+            time.sleep(0.01)
+            i += 1
+        print('\nCount: ',i)
         time.sleep(0.1)
+        current = self.ser.read().decode()
+        print('After: ',current)
         print('print complete')
         return
 

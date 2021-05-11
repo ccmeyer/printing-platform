@@ -148,9 +148,13 @@ void loop() {
     }
     digitalWrite(valveP, LOW);
     digitalWrite(valveR, LOW);
-    Serial.write('C');
     pulseswitch = 0;
+    Serial.write('C');
     delay(100);
+    Serial.write('C');
+    delay(100);
+    Serial.write('E');
+
   } else if (pulseswitch == 2) {
 //    digitalWrite(valveP, LOW);
     digitalWrite(valveR, HIGH);
