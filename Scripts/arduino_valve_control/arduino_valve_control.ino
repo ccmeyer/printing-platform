@@ -22,7 +22,7 @@ byte inByte = 0;
 
 void ParamPass()     // receive cmd data after flush the buffer, while stopping output pulse
 {
-  
+
   if (Serial.available()) {
     for (i = 0; i < 16; i++){
       datard[i] = 0;
@@ -34,7 +34,7 @@ void ParamPass()     // receive cmd data after flush the buffer, while stopping 
       if (i < 12){
         datard[i] = inByte;
         i++;
-      } 
+      }
       else {
         while (Serial.available()){
           inByte = Serial.read();
@@ -61,7 +61,7 @@ void ParamPass()     // receive cmd data after flush the buffer, while stopping 
           pulseswitch = 3;
           //break;
           i=i+4;
-        } 
+        }
         else {
           Freq = datard[i + 2];
           tp = 1000 / Freq;
@@ -85,7 +85,7 @@ void setup() { // put your setup code here, to run once:
   Serial.setTimeout(100);
 //  Serial.write('R');
   while (!Serial) {
-  ;   // wait for serial port to connect. Needed for Leonardo only  
+  ;   // wait for serial port to connect. Needed for Leonardo only
   }
     pinMode(2, OUTPUT);
     pinMode(3, OUTPUT);
@@ -123,7 +123,7 @@ void loop() {
         delayMicroseconds(RePW);
         digitalWrite(valveR, LOW);
         delay(1000/Freq/2 - RePW/1000/2);
-      } 
+      }
     }
     else if(RePW == 0){   //Pulse test
       for(j=0; j < pulsecount; j++){
@@ -132,9 +132,9 @@ void loop() {
         delayMicroseconds(PW);
         digitalWrite(valveP, LOW);
         delay(1000/Freq/2 - PW/1000/2);
-      } 
+      }
     }
-    
+
     else {    //Normal droplet printing with refuel open when not pulsing
       for(j=0; j < pulsecount; j++){
         delay(1000/Freq/2 - PW/1000/2);
@@ -144,26 +144,36 @@ void loop() {
         digitalWrite(valveP, LOW);
         digitalWrite(valveR, HIGH);
         delay(1000/Freq/2 - PW/1000/2);
-      } 
+      }
     }
     digitalWrite(valveP, LOW);
     digitalWrite(valveR, LOW);
     pulseswitch = 0;
-    Serial.write('C');
     delay(100);
     Serial.write('C');
-    delay(100);
-    Serial.write('E');
+    if (pulsecount == 0){
+      Serial.write('N');
+    }
+    if (Freq == 0){
+      Serial.write('F');
+    }
+    //delay(100);
+    //Serial.write('C');
+    //delay(100);
+    //Serial.write('E');
 
   } else if (pulseswitch == 2) {
 //    digitalWrite(valveP, LOW);
+    Serial.write('R');
     digitalWrite(valveR, HIGH);
     delay(100);
   } else if (pulseswitch == 3) {
+    Serial.write('P');
     digitalWrite(valveP, HIGH);
 //    digitalWrite(valveR, LOW);
     delay(100);
   } else {
+    Serial.write('E');
     digitalWrite(valveP, LOW);
     digitalWrite(valveR, LOW);
     delay(100);

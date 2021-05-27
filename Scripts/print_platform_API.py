@@ -70,10 +70,6 @@ def Switch_CtrlSeq(state):
         single_Ctrl = [255,255,239,239]
     elif state == 'print':
         single_Ctrl = [255,255,254,254]
-    elif state == 'refuel':
-        single_Ctrl = [255,255,237,237]
-    elif state == 'pulse':
-        single_Ctrl = [255,255,235,235]
     return bytes(single_Ctrl)
 
 def get_coords(coords):
@@ -700,9 +696,13 @@ class Platform():
 
         arr = pd.read_csv(current_path)
         for index, line in arr.iterrows():
+            print('\nOn {} out of {}'.format(index+1,len(arr)))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(20,3000,50000,line['Droplet'])
-            print('On {} out of {}'.format(index,len(arr)))
+
+        print('\nPrint array complete\n')
+        return
+
 
     def drive_platform(self):
         '''
@@ -814,25 +814,43 @@ class Platform():
         '''
         Sends the desired printing instructions to the Arduino
         '''
-        print('starting print...',end='')
+        print('starting print...')
+        if count == 0:
+            print('No droplets to print')
+            return
+        delay = (count/freq)
+        self.get_pressure()
+        # print('Delaying for: ',delay)
+        extra = self.ser.readall().decode()
+        # print(' - Extra: ',extra)
         self.ser.write(SetParam_CtrlSeq(freq,pulse_width,refuel_width,count))
         time.sleep(0.2)
         self.ser.write(Switch_CtrlSeq('close'))
-        time.sleep(0.2)
 
+        time.sleep(delay)
         current = self.ser.read().decode()
-        time.sleep(0.1)
-        print(current)
+        # print(' - First:',current)
         i = 0
         while current != 'C':
             current = self.ser.read().decode()
             # print(current)
-            time.sleep(0.01)
+            time.sleep(0.05)
             i += 1
-        print('\nCount: ',i)
+            if i > 10:
+                print('\n---Missed the signal, repeating print---\n')
+                self.print_droplets(freq,pulse_width,refuel_width,count)
+                print('Completed the fix for the missed signal')
+                break
+        print(' - Count: ',i)
         time.sleep(0.1)
-        current = self.ser.read().decode()
-        print('After: ',current)
+        after = self.ser.readall().decode()
+        # print(' - After: ',after)
+        if 'N' in after or 'F' in after:
+            print('\n---Incorrect parameters, repeating print---\n')
+            self.print_droplets(freq,pulse_width,refuel_width,count)
+            print('Completed the fix for the incorrect parameters')
+            return
+        self.get_pressure()
         print('print complete')
         return
 
