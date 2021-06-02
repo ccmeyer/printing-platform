@@ -478,10 +478,8 @@ class Platform():
         if self.location == 'loading':
             print('Already in loading position')
             return
-        elif self.location == 'calibration':
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
-            # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-            self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.location = 'loading'
         return
@@ -495,15 +493,9 @@ class Platform():
         if self.location == 'calibration':
             print('Already in calibration position')
             return
-        elif self.location == "above_calibration":
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
-            self.location = 'calibration'
-            return
-        elif self.location == 'plate':
-            self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
-        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
+
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
 
         self.location = 'calibration'
@@ -518,15 +510,8 @@ class Platform():
         if self.location == 'above_calibration':
             print('Already above calibration position')
             return
-        elif self.location == 'calibration':
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
-            self.location = 'above_calibration'
-            return
-        elif self.location == 'plate':
-            self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
-        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
 
         self.location = 'above_calibration'
         return
@@ -536,8 +521,9 @@ class Platform():
         Moves the Dobot to well A1 specified in the plate metadata file
         '''
         print('\nMoving to printing position...')
-        if self.location == 'calibration' or self.location == 'home' or self.location == 'above_calibration':
-            self.move_to_loading_position()
+
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.top_left['x'],self.top_left['y'], 150)
         self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
         self.current_row = 0
         self.current_column = 0
@@ -561,8 +547,8 @@ class Platform():
         Moves the Dobot to a defined well while checking that the well is within
         the bounds of the plate
         '''
-        if self.location == 'calibration' or self.location == 'home':
-            self.move_to_loading_position()
+        if self.location in ['calibration','above_calibration','home']:
+            self.move_to_print_position()
 
         if row <= self.max_rows and column <= self.max_columns and row >= 0 and column >= 0:
             target_coords = self.get_well_coords(row,column)
@@ -693,7 +679,7 @@ class Platform():
                 current_path = all_arrays[int(entry)]
                 temp = False
         print('Chosen array: ',current_path)
-
+        self.move_to_print_position()
         arr = pd.read_csv(current_path)
         for index, line in arr.iterrows():
             print('\nOn {} out of {}'.format(index+1,len(arr)))
