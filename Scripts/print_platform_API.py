@@ -1217,72 +1217,96 @@ class Platform():
                 chip.pred_refuel_pressure = ((chip.pred_print_pressure)*pulse_per_sec*chip.refuel_resistance) / (chip.total_resistance*(1-pulse_per_sec))
 
                 self.set_pressure(chip.pred_print_pressure,chip.pred_refuel_pressure)
+                print('Pred pressures: R: {}\tP: {}'.format(chip.pred_refuel_pressure,chip.pred_print_pressure))
                 self.pressure_on()
+
+                input('Place tube back in holder and press Enter ')
                 self.move_to_tube_position()
 
-                print('\nCheck the refuel pressure\n')
-                hold = True
-                while hold:
-                    try:
-                        c = msvcrt.getch().decode()
-                        print(c)
-                        valid = True
-                    except:
-                        print('Not a valid input')
-                        valid = False
-                    if valid:
-                        if c == "x":
-                            self.refuel_test()
-                        elif c == "c":
-                            self.pulse_test()
-                        elif c == 'z':
-                            self.print_droplets(20,3000,50000,10)
-                            print('completed test print')
-
-                        elif c == '1':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
-                        elif c == '2':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-                        elif c == '3':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
-                        elif c == '4':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
-
-                        elif c == '6':
-                            self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
-                        elif c == '7':
-                            self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-                        elif c == '8':
-                            self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
-                        elif c == '9':
-                            self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-
-                        elif c == "q":
-                            print('Continue to testing droplet volume? (y/n)')
-                            if ask_yes_no():
-                                hold = False
-                            else:
-                                print("Didn't quit")
-                        else:
-                            print("Not a valid input")
-
-                chip.real_refuel_pressure = self.refuel_pressure
-
-                self.move_above_tube_position()
-                input('\nZero the scale and press Enter\n')
-                self.move_to_tube_position()
-                droplet_count = 100
-                print("Printing {} droplets...".format(droplet_count))
-
-                self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,droplet_count)
-                test_mass = float(input('\nType in the mass press Enter\n'))
-                test_volume = test_mass / chip.density
-
-                chip.set_droplet_volume((test_volume / droplet_count) *1000)
-
-                print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
+                self.check_pressures()
 
                 return
+
+    def check_pressures(self):
+        self.move_to_tube_position()
+        print('\nCheck the refuel pressure\n')
+        hold = True
+        while hold:
+            try:
+                c = msvcrt.getch().decode()
+                print(c)
+                valid = True
+            except:
+                print('Not a valid input')
+                valid = False
+            if valid:
+                if c == "x":
+                    self.refuel_test()
+                elif c == "c":
+                    self.pulse_test()
+                elif c == 'z':
+                    self.print_droplets(20,3000,50000,10)
+                    print('completed test print')
+
+                elif c == '1':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+                elif c == '2':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+                elif c == '3':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+                elif c == '4':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+
+                elif c == '6':
+                    self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+                elif c == '7':
+                    self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+                elif c == '8':
+                    self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+                elif c == '9':
+                    self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+
+                elif c == "q":
+                    print('Test droplet volume? (y/n)')
+                    if ask_yes_no():
+                        hold = False
+                    else:
+                        print("Didn't quit")
+                else:
+                    print("Not a valid input")
+
+        # chip.real_refuel_pressure = self.refuel_pressure
+        print('Adjusted refuel:',self.refuel_pressure)
+        print('Adjusted print:',self.pulse_pressure)
+
+        self.move_above_tube_position()
+        input('\nZero the scale and press Enter\n')
+        self.move_to_tube_position()
+        droplet_count = 100
+        print("Printing {} droplets...".format(droplet_count))
+        for i in range(5):
+            self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,20)
+            time.sleep(0.5)
+        self.move_above_tube_position()
+
+        test_mass = float(input('\nType in the mass press Enter\n'))
+        # test_volume = test_mass / chip.density
+
+        # chip.set_droplet_volume((test_volume / droplet_count) *1000)
+
+        # print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
+
+        print('Repeat test? (y/n)')
+        if ask_yes_no():
+            # self.move_to_tube_position()
+            self.check_pressures()
+            return
+        else:
+            print('Calibration complete')
+            return
+        return
+
+
 
 
     def record_flow(self):
