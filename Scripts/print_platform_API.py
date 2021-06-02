@@ -818,20 +818,16 @@ class Platform():
             return
         delay = (count/freq)
         self.get_pressure()
-        # print('Delaying for: ',delay)
         extra = self.ser.readall().decode()
-        # print(' - Extra: ',extra)
         self.ser.write(SetParam_CtrlSeq(freq,pulse_width,refuel_width,count))
         time.sleep(0.2)
         self.ser.write(Switch_CtrlSeq('close'))
 
         time.sleep(delay)
         current = self.ser.read().decode()
-        # print(' - First:',current)
         i = 0
         while current != 'C':
             current = self.ser.read().decode()
-            # print(current)
             time.sleep(0.05)
             i += 1
             if i > 10:
@@ -842,7 +838,6 @@ class Platform():
         print(' - Count: ',i)
         time.sleep(0.1)
         after = self.ser.readall().decode()
-        # print(' - After: ',after)
         if 'N' in after or 'F' in after:
             print('\n---Incorrect parameters, repeating print---\n')
             self.print_droplets(freq,pulse_width,refuel_width,count)
@@ -882,14 +877,14 @@ class Platform():
         self.mcfs = PGMFC()
         self.mcfs.monitor_start(span=100)
         time.sleep(1)
-        self.channel_pulse = self.mcfs[1]
-        self.channel_refuel = self.mcfs[2]
+        self.channel_pulse = self.mcfs[2]
+        self.channel_refuel = self.mcfs[1]
         print('Pressure regulator is connected')
 
         self.set_pressure(2, 0.3)
         return
 
-    def set_pressure(self,pulse,refuel,runtime=600):
+    def set_pressure(self,pulse,refuel,runtime=6000):
         self.pulse_pressure = pulse
         self.refuel_pressure = refuel
 
