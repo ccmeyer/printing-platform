@@ -719,12 +719,18 @@ class Platform():
                 self.move_to_loading_position()
             elif c == '[':
                 self.move_to_tube_position()
+            elif c == ']':
+                self.move_above_tube_position()
             elif c == 'y':
                 self.change_print_position()
             elif c == 'h':
                 self.change_tube_position()
             elif c == 't':
                 self.print_droplets(20,3000,50000,10)
+            elif c == 'T':
+                for i in range(5):
+                    self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,20)
+                    time.sleep(0.5)
             elif c == 'o':
                 self.pressure_on()
             elif c == 'i':
@@ -739,18 +745,24 @@ class Platform():
                 self.refuel_test()
             elif c == 'c':
                 self.pulse_test()
-            # elif c == 'b':
-            #     self.resistance_testing()
+            elif c == 'b':
+                # self.check_pressures()
+                self.calibrate_chip()
+            elif c == 'B':
+                # self.get_pressure()
+                self.resistance_testing()
             # elif c == 'r':
             #     self.record_flow()
+            elif c == 'r':
+                self.reset_dobot_position()
             elif c == 'P':
                 self.print_array()
             elif c == 'n':
                 self.dobot_manual_drive()
-            elif c == ']':
-                self.refuel_open()
-            elif c == ';':
-                self.pulse_open()
+            # elif c == ']':
+            #     self.refuel_open()
+            # elif c == ';':
+            #     self.pulse_open()
             elif c == '.':
                 self.close_valves()
 
@@ -886,6 +898,13 @@ class Platform():
         print("Pulse={}\tRefuel={}".format(pulse,refuel))
         return
 
+    def get_pressure(self):
+        print_pressure = self.channel_pulse.get_pressure()
+        refuel_pressure = self.channel_refuel.get_pressure()
+        print('Print:',print_pressure)
+        print('Refuel:',refuel_pressure)
+        return
+
     def pulse_on(self):
         self.channel_pulse.purge_on()
         return
@@ -925,11 +944,148 @@ class Platform():
         '''
         return (counter * droplets * (width * 10**-6) * (6874.76 * pressure)) / (volume * 10**-9)
 
+    def charge_chip(self):
+        print('\nAdjust pressure:')
+        while True:
+            try:
+                c = msvcrt.getch().decode()
+            except:
+                print('Not a valid input')
+            if c == 'x':
+                self.refuel_test()
+            elif c == 'c':
+                self.pulse_test()
+            elif c =='t':
+                self.print_droplets(20,3000,50000,10)
+            elif c =='T':
+                self.test_print()
+            elif c == '1':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+            elif c == '2':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+            elif c == '3':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+            elif c == '4':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+            elif c == '6':
+                self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+            elif c == '7':
+                self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+            elif c == '8':
+                self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+            elif c == '9':
+                self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+            elif c == '[':
+                self.move_to_tube_position()
+            elif c == ']':
+                self.move_above_tube_position()
+
+            elif c == "q":
+                print('Finished charging? (y/n)')
+                if ask_yes_no():
+                    print('Quitting...')
+                    section_break()
+                    return
+                else:
+                    print("Didn't quit")
+            else:
+                print("not valid")
+
+    def test_print(self):
+        for i in range(5):
+            self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,20)
+            time.sleep(0.5)
+        return
+
+
+    def calibrate_chip(self):
+        print('Calibrate chip? (y/n)')
+        if not ask_yes_no():
+            print('Quitting...')
+            section_break()
+            return
+        target = 6
+        x = []
+        y = []
+        self.move_above_tube_position()
+        input('Tare the scale and place tube in holder')
+        self.move_to_tube_position()
+        current_print = 2
+        charge_refuel = 0.6
+        self.set_pressure(current_print,charge_refuel)
+        self.charge_chip()
+        self.set_pressure(current_print,current_print/12)
+        self.test_print()
+        self.move_above_tube_position()
+        current_vol = float(input('Enter mass here: '))
+        input('Place tube back in holder and press enter')
+        x.append(current_print)
+        y.append(current_vol)
+        if current_vol > target:
+            current_print -= 0.5
+        else:
+            current_print += 0.5
+
+        self.set_pressure(current_print,charge_refuel)
+        self.charge_chip()
+        self.set_pressure(current_print,current_print/12)
+        self.move_to_tube_position()
+        time.sleep(0.5)
+        self.test_print()
+        self.move_above_tube_position()
+        current_vol = float(input('Enter mass here: '))
+        input('Place tube back in holder and press enter')
+        x.append(current_print)
+        y.append(current_vol)
+
+        [m,b] = np.polyfit(np.array(x),np.array(y),1)
+
+        current_print = (target - b) / m
+        self.set_pressure(current_print,charge_refuel)
+        self.charge_chip()
+        self.set_pressure(current_print,current_print/12)
+        self.move_to_tube_position()
+        time.sleep(0.5)
+        self.test_print()
+        self.move_above_tube_position()
+        current_vol = float(input('Enter mass here: '))
+
+        if current_vol < target*0.95 or current_vol > target*1.05:
+            print('Repeating test')
+            x.append(current_print)
+            y.append(current_vol)
+
+            [m,b] = np.polyfit(np.array(x),np.array(y),1)
+
+            current_print = (target - b) / m
+            self.set_pressure(current_print,charge_refuel)
+            self.charge_chip()
+            self.set_pressure(current_print,current_print/12)
+            self.test_print()
+            self.move_above_tube_position()
+            current_vol = float(input('Enter mass here: '))
+
+        input('Place tube back in holder and press enter')
+        print('\nCalibrate the refuel pressure:')
+        self.charge_chip()
+        print('\nCompleted calibration')
+        section_break()
+        return
+
+
+
+
+
     def resistance_testing(self):
         '''
         Directs the operator through the calibration process that is defined in
         the printing_calibration_methods.md file
         '''
+        print('Test resistance (y/n)')
+        if not ask_yes_no():
+            print('Quitting...')
+            section_break()
+            return
         print_title('Resistance testing mode...')
 
         chip = PrinterHead()
