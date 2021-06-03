@@ -1010,6 +1010,8 @@ class Platform():
         self.set_pressure(current_print,charge_refuel)
         self.charge_chip()
         self.set_pressure(current_print,current_print/12)
+        time.sleep(0.5)
+        self.move_to_tube_position()
         self.test_print()
         self.move_above_tube_position()
         current_vol = float(input('Enter mass here: '))
@@ -1030,22 +1032,26 @@ class Platform():
         self.move_above_tube_position()
         current_vol = float(input('Enter mass here: '))
         input('Place tube back in holder and press enter')
-        x.append(current_print)
-        y.append(current_vol)
 
-        [m,b] = np.polyfit(np.array(x),np.array(y),1)
+        tolerance = 0.05
 
-        current_print = (target - b) / m
-        self.set_pressure(current_print,charge_refuel)
-        self.charge_chip()
-        self.set_pressure(current_print,current_print/12)
-        self.move_to_tube_position()
-        time.sleep(0.5)
-        self.test_print()
-        self.move_above_tube_position()
-        current_vol = float(input('Enter mass here: '))
+        if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
+            x.append(current_print)
+            y.append(current_vol)
 
-        if current_vol < target*0.95 or current_vol > target*1.05:
+            [m,b] = np.polyfit(np.array(x),np.array(y),1)
+
+            current_print = (target - b) / m
+            self.set_pressure(current_print,charge_refuel)
+            self.charge_chip()
+            self.set_pressure(current_print,current_print/12)
+            self.move_to_tube_position()
+            time.sleep(0.5)
+            self.test_print()
+            self.move_above_tube_position()
+            current_vol = float(input('Enter mass here: '))
+
+        if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
             print('Repeating test')
             x.append(current_print)
             y.append(current_vol)
@@ -1056,12 +1062,15 @@ class Platform():
             self.set_pressure(current_print,charge_refuel)
             self.charge_chip()
             self.set_pressure(current_print,current_print/12)
+            self.move_to_tube_position()
+            time.sleep(0.5)
             self.test_print()
             self.move_above_tube_position()
             current_vol = float(input('Enter mass here: '))
 
         input('Place tube back in holder and press enter')
         print('\nCalibrate the refuel pressure:')
+        self.set_pressure(current_print,current_print/8)
         self.charge_chip()
         print('\nCompleted calibration')
         section_break()
