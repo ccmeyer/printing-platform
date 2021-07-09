@@ -45,6 +45,22 @@ def ask_yes_no():
         elif c == 'n':
             return False
 
+    def ask_yes_no_quit():
+        '''
+        Simple function to double check that the operator wants to commit to an action
+        '''
+        possible = ['y','n']
+        while True:
+            c = msvcrt.getch().decode()
+            if c not in possible:
+                print('Choose a valid key')
+            elif c == 'y':
+                return 'yes'
+            elif c == 'n':
+                return 'no'
+            elif c == 'q':
+                return 'quit'
+
 def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
     '''
     Packages the printing information for transfer to the Arduino to open and
@@ -663,10 +679,30 @@ class Platform():
         print("Print an array? (y/n)")
         if not ask_yes_no():
             return
-        all_arrays = glob.glob('../../Print_arrays/*.csv')
+
+        all_exp = glob.glob('../../Print_arrays/*/"')
+        print('Possible experiments:')
+        for i,arr in enumerate(all_exp):
+            print('{}: {}'.format(i,arr.split('\\')[-2]))
+
+        possible_inputs = [str(i) for i in range(len(all_exp))]
+
+        temp = True
+        while temp:
+            print('Enter desired array number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            else:
+                current_path = all_exp[int(entry)]
+                temp = False
+        print('Chosen array: ',current_path)
+
+        all_arrays = glob.glob('{}/*.csv'.format(current_path))
+        all_arrays = [p for p in all_arrays if 'key' not in p]
         print('Possible arrays:')
         for i,arr in enumerate(all_arrays):
-            print('{}: {}'.format(i,arr))
+            print('{}: {}'.format(i,arr.split('---')[-1].split('.')[0]))
 
         possible_inputs = [str(i) for i in range(len(all_arrays))]
         temp = True
@@ -992,89 +1028,158 @@ class Platform():
             time.sleep(0.5)
         return
 
+    def test_pressure(self,print_pressure):
+        self.set_pressure(print_pressure,0.6)
+        self.move_to_tube_position()
+        self.charge_chip()
+        self.set_pressure(self.pulse_pressure,print_pressure/12)
 
-    def calibrate_chip(self):
+        self.move_above_tube_position()
+        input('Tare the scale, place tube in holder, and press Enter')
+        self.move_to_tube_position()
+        self.test_print()
+        self.move_above_tube_position()
+
+        current_vol = float(input('Enter mass here: '))
+        input('Place tube back in holder and press enter')
+        return current_vol
+
+
+    def calibrate_chip(self,target = 6):
         print('Calibrate chip? (y/n)')
         if not ask_yes_no():
             print('Quitting...')
             section_break()
             return
-        target = 6
-        x = []
-        y = []
-        self.move_above_tube_position()
-        input('Tare the scale and place tube in holder')
-        self.move_to_tube_position()
-        current_print = 2
-        charge_refuel = 0.6
-        self.set_pressure(current_print,charge_refuel)
-        self.charge_chip()
-        self.set_pressure(current_print,current_print/12)
-        time.sleep(0.5)
-        self.move_to_tube_position()
-        self.test_print()
-        self.move_above_tube_position()
-        current_vol = float(input('Enter mass here: '))
+        self.calibrate_print(target=target)
         input('Place tube back in holder and press enter')
-        x.append(current_print)
-        y.append(current_vol)
-        if current_vol > target:
-            current_print -= 0.5
-        else:
-            current_print += 0.5
-
-        self.set_pressure(current_print,charge_refuel)
-        self.charge_chip()
-        self.set_pressure(current_print,current_print/12)
-        self.move_to_tube_position()
-        time.sleep(0.5)
-        self.test_print()
-        self.move_above_tube_position()
-        current_vol = float(input('Enter mass here: '))
-        input('Place tube back in holder and press enter')
-
-        tolerance = 0.05
-
-        if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
-            x.append(current_print)
-            y.append(current_vol)
-
-            [m,b] = np.polyfit(np.array(x),np.array(y),1)
-
-            current_print = (target - b) / m
-            self.set_pressure(current_print,charge_refuel)
-            self.charge_chip()
-            self.set_pressure(current_print,current_print/12)
-            self.move_to_tube_position()
-            time.sleep(0.5)
-            self.test_print()
-            self.move_above_tube_position()
-            current_vol = float(input('Enter mass here: '))
-
-        if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
-            print('Repeating test')
-            x.append(current_print)
-            y.append(current_vol)
-
-            [m,b] = np.polyfit(np.array(x),np.array(y),1)
-
-            current_print = (target - b) / m
-            self.set_pressure(current_print,charge_refuel)
-            self.charge_chip()
-            self.set_pressure(current_print,current_print/12)
-            self.move_to_tube_position()
-            time.sleep(0.5)
-            self.test_print()
-            self.move_above_tube_position()
-            current_vol = float(input('Enter mass here: '))
-
-        input('Place tube back in holder and press enter')
-        print('\nCalibrate the refuel pressure:')
-        self.set_pressure(current_print,current_print/8)
+        print('\n---Calibrate the refuel pressure---')
+        self.set_pressure(self.pulse_pressure,self.pulse_pressure/8)
         self.charge_chip()
         print('\nCompleted calibration')
         section_break()
         return
+
+
+    def calibrate_print(self,target = 6):
+        x = []
+        y = []
+        current_print = 2
+        charge_refuel = 0.6
+        tolerance = 0.05
+
+        while True:
+            print('Current measurements:{}\t{}'.format(x,y))
+            current_vol = self.test_pressure(current_print)
+            if current_vol <= target*(1+tolerance) and current_vol >= target*(1-tolerance):
+                print('Volume is within tolerance')
+                return
+            print('y: add point\tn: repeat test,\tq: quit')
+            answer = ask_yes_no_quit()
+            if answer == 'quit':
+                print('Quitting calibration')
+                return
+            elif answer == 'yes':
+                print('Adding measurement')
+                x.append(current_print)
+                y.append(current_vol)
+            elif answer == 'no':
+                print('Skipping measurement')
+            if len(x) <= 2:
+                if current_vol > target:
+                    current_print -= 0.5
+                else:
+                    current_print += 0.5
+                print('Setting pressure to ',current_print)
+
+            else:
+                [m,b] = np.polyfit(np.array(x),np.array(y),1)
+                current_print = (target - b) / m
+                print('Setting pressure to ',current_print)
+
+
+    # def calibrate_chip(self):
+    #     print('Calibrate chip? (y/n)')
+    #     if not ask_yes_no():
+    #         print('Quitting...')
+    #         section_break()
+    #         return
+    #     target = 6
+    #     x = []
+    #     y = []
+    #     self.move_above_tube_position()
+    #     input('Tare the scale and place tube in holder')
+    #     self.move_to_tube_position()
+    #     current_print = 2
+    #     charge_refuel = 0.6
+    #     self.set_pressure(current_print,charge_refuel)
+    #     self.charge_chip()
+    #     self.set_pressure(current_print,current_print/12)
+    #     time.sleep(0.5)
+    #     self.move_to_tube_position()
+    #     self.test_print()
+    #     self.move_above_tube_position()
+    #     current_vol = float(input('Enter mass here: '))
+    #     input('Place tube back in holder and press enter')
+    #     x.append(current_print)
+    #     y.append(current_vol)
+    #     if current_vol > target:
+    #         current_print -= 0.5
+    #     else:
+    #         current_print += 0.5
+    #
+    #     self.set_pressure(current_print,charge_refuel)
+    #     self.charge_chip()
+    #     self.set_pressure(current_print,current_print/12)
+    #     self.move_to_tube_position()
+    #     time.sleep(0.5)
+    #     self.test_print()
+    #     self.move_above_tube_position()
+    #     current_vol = float(input('Enter mass here: '))
+    #     input('Place tube back in holder and press enter')
+    #
+    #     tolerance = 0.05
+    #
+    #     if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
+    #         x.append(current_print)
+    #         y.append(current_vol)
+    #
+    #         [m,b] = np.polyfit(np.array(x),np.array(y),1)
+    #
+    #         current_print = (target - b) / m
+    #         self.set_pressure(current_print,charge_refuel)
+    #         self.charge_chip()
+    #         self.set_pressure(current_print,current_print/12)
+    #         self.move_to_tube_position()
+    #         time.sleep(0.5)
+    #         self.test_print()
+    #         self.move_above_tube_position()
+    #         current_vol = float(input('Enter mass here: '))
+    #
+    #     if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
+    #         print('Repeating test')
+    #         x.append(current_print)
+    #         y.append(current_vol)
+    #
+    #         [m,b] = np.polyfit(np.array(x),np.array(y),1)
+    #
+    #         current_print = (target - b) / m
+    #         self.set_pressure(current_print,charge_refuel)
+    #         self.charge_chip()
+    #         self.set_pressure(current_print,current_print/12)
+    #         self.move_to_tube_position()
+    #         time.sleep(0.5)
+    #         self.test_print()
+    #         self.move_above_tube_position()
+    #         current_vol = float(input('Enter mass here: '))
+    #
+    #     input('Place tube back in holder and press enter')
+    #     print('\nCalibrate the refuel pressure:')
+    #     self.set_pressure(current_print,current_print/8)
+    #     self.charge_chip()
+    #     print('\nCompleted calibration')
+    #     section_break()
+    #     return
 
 
 
