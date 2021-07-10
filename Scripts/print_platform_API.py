@@ -1,4 +1,3 @@
-import Dobot.DobotDllType as dType
 from Precigenome.PGMFC import PGMFC
 
 import time
@@ -11,6 +10,26 @@ import pandas as pd
 import math
 import cv2
 import glob
+
+robot_names = ['Magician','M1']
+for index,name in enumerate(robot_names):
+    print(index,name)
+enteredStr = input("Please enter which robot is in use by index: ")
+while not enteredStr.isnumeric() or int(enteredStr) >= len(robot_names) or int(enteredStr) < 0:
+    enteredStr = input("The entered command is invalid. Please enter a valid index: ")
+if int(enteredStr) == 0:
+    # self._implType = 0
+    import Dobot.DobotDllType as dType
+    # self.api = dType.load()
+    print("Selected the Magician")
+elif int(enteredStr) == 1:
+    # self._implType = 1
+    import DobotM1.DobotDllType as dType
+    from DobotM1.DobotDllType import PTPMode
+    # self.api = dType.load()
+    print("Selected the M1")
+else:
+    print("No options selected")
 
 def ask_yes_no():
     '''
@@ -26,19 +45,21 @@ def ask_yes_no():
         elif c == 'n':
             return False
 
-def run_cmd(api,last_index):
-    '''
-    Executes the dobot's queued commands
-    '''
-    dType.SetQueuedCmdStartExec(api)
-    #Wait for Executing Last Command
-    while last_index[0] > dType.GetQueuedCmdCurrentIndex(api)[0]:
-        dType.dSleep(100)
-
-    #Stop to Execute Command Queued
-    dType.SetQueuedCmdStopExec(api)
-    return
-
+    def ask_yes_no_quit():
+        '''
+        Simple function to double check that the operator wants to commit to an action
+        '''
+        possible = ['y','n']
+        while True:
+            c = msvcrt.getch().decode()
+            if c not in possible:
+                print('Choose a valid key')
+            elif c == 'y':
+                return 'yes'
+            elif c == 'n':
+                return 'no'
+            elif c == 'q':
+                return 'quit'
 
 def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
     '''
@@ -65,10 +86,6 @@ def Switch_CtrlSeq(state):
         single_Ctrl = [255,255,239,239]
     elif state == 'print':
         single_Ctrl = [255,255,254,254]
-    elif state == 'refuel':
-        single_Ctrl = [255,255,237,237]
-    elif state == 'pulse':
-        single_Ctrl = [255,255,235,235]
     return bytes(single_Ctrl)
 
 def get_coords(coords):
@@ -178,45 +195,92 @@ class Platform():
         of the loading and tube positions.
         '''
         print('\nConnecting the Dobot...\n')
+
         self.api = dType.load()
-        self.CON_STR = {
+
+        CON_STR = {
             dType.DobotConnect.DobotConnect_NoError:  "DobotConnect_NoError",
             dType.DobotConnect.DobotConnect_NotFound: "DobotConnect_NotFound",
             dType.DobotConnect.DobotConnect_Occupied: "DobotConnect_Occupied"}
+        deviceList = dType.SearchDobot(self.api)
+        for index,devicePort in enumerate(deviceList):
+            print(index,devicePort)
+        enteredStr = input("Please enter your target M1 port by index: ")
+        while not enteredStr.isnumeric() or int(enteredStr) >= len(deviceList) or int(enteredStr) < 0:
+            enteredStr = input("The entered command is invalid. Please enter a valid index: ")
+        print("Connecting ", deviceList[int(enteredStr)])
+        state = dType.ConnectDobot(self.api,  deviceList[int(enteredStr)], 115200)[0]
+        print("Connect status:",CON_STR[state])
 
-        self.state = dType.ConnectDobot(self.api, "", 115200)[0]
-        print("Connect Dobot status:",self.CON_STR[self.state])
-        if (self.state != dType.DobotConnect.DobotConnect_NoError):
+        if (state == dType.DobotConnect.DobotConnect_NoError):
+            dType.SetQueuedCmdStopExec(self.api)
+            dType.SetQueuedCmdClear(self.api)
+        else:
             print('failed')
             return
-        else:
-            print('Successful connection')
 
-        dType.SetDeviceName(self.api,'Dobot Magician')
-        print(dType.GetDeviceName(self.api)[0])
+        # dType.SetDeviceName(self.api,'Dobot Magician')
+        # print(dType.GetDeviceName(self.api)[0])
 
         #Clean Command Queued
-        dType.SetQueuedCmdClear(self.api)
+        # dType.SetQueuedCmdClear(self.api)
+
+        print('Starting calibrations')
 
         # Extract all calibration data
-        self.calibration_file_path = '../Calibrations/print_calibrations.json'
+        all_calibrations = glob.glob('../../Calibrations/*print*')
+        print('Possible calibrations:')
+        for i,arr in enumerate(all_calibrations):
+            print('{}: {}'.format(i,arr))
+
+        possible_inputs = [str(i) for i in range(len(all_calibrations))]
+        temp = True
+        while temp:
+            print('Enter desired calibration number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            else:
+                current_path = all_calibrations[int(entry)]
+                temp = False
+        print('Chosen plate: ',current_path)
+        self.calibration_file_path = current_path
+
+        # self.calibration_file_path = '../Calibrations\\print_calibrations_M1.json'
         with open(self.calibration_file_path) as json_file:
             self.calibration_data =  json.load(json_file)
         self.home_position = self.calibration_data['home_position']
         self.loading_position = self.calibration_data['loading_position']
         self.tube_position = self.calibration_data['tube_position']
 
-        #Async Motion Params Setting
-        dType.SetHOMEParams(self.api, self.home_position['x'],self.home_position['y'],self.home_position['z'], 0, isQueued = 1)
-        dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
-        dType.SetPTPCommonParams(self.api, 100, 100, isQueued = 1)
+        print('-------completed')
 
-        self.activate_gripper()
+        #Async Motion Params Setting
+        # dType.SetHOMEParams(self.api, self.home_position['x'],self.home_position['y'],self.home_position['z'], 0, isQueued = 1)
+        # dType.SetPTPJointParams(self.api, 200, 200, 200, 200, 200, 200, 200, 200, isQueued = 1)
+        dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
+
+        # self.activate_gripper()
         self.get_plate_data()
         self.location = 'home'
         self.current_row = 0
         self.current_column = 0
 
+        return
+
+    def run_cmd(self):
+        '''
+        Executes the dobot's queued commands
+        '''
+        lastQueuedIndex = dType.SetWAITCmd(self.api, 0.1, isQueued=1)[0]
+        dType.SetQueuedCmdStartExec(self.api)
+        #Wait for Executing Last Command
+        while lastQueuedIndex > dType.GetQueuedCmdCurrentIndex(self.api)[0]:
+            dType.dSleep(10)
+
+        #Stop to Execute Command Queued
+        # dType.SetQueuedCmdStopExec(api)
+        dType.SetQueuedCmdClear(self.api)
         return
 
     def home_dobot(self):
@@ -231,7 +295,7 @@ class Platform():
         print("Homing...")
         self.reset_dobot_position()
         last_index = dType.SetHOMECmd(self.api, temp = 0, isQueued = 1)
-        run_cmd(self.api,last_index)
+        self.run_cmd()
         self.location = 'home'
         return
 
@@ -270,7 +334,24 @@ class Platform():
         generates the transformation matrix needed to correct the deviations
         in the Dobot positioning. Also accounts for deviations in the Z dimension
         '''
-        self.plate_file_path = '../Calibrations/shallow-384_well_plate.json'
+        # self.plate_file_path = '../Calibrations\\shallow-384_well_plate_M1.json'
+        all_calibrations = glob.glob('../../Calibrations/*well*')
+        print('Possible plates:')
+        for i,arr in enumerate(all_calibrations):
+            print('{}: {}'.format(i,arr))
+
+        possible_inputs = [str(i) for i in range(len(all_calibrations))]
+        temp = True
+        while temp:
+            print('Enter desired calibration number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            else:
+                current_path = all_calibrations[int(entry)]
+                temp = False
+        print('Chosen plate: ',current_path)
+        self.plate_file_path = current_path
         with open(self.plate_file_path) as json_file:
             self.plate_data =  json.load(json_file)
         self.plate_name = self.plate_data['plate_name']
@@ -404,7 +485,6 @@ class Platform():
             json.dump(self.calibration_data, outfile)
         print("Printing calibrations saved")
 
-
     def move_to_loading_position(self):
         '''
         Moves the Dobot to the loading position specified in
@@ -414,10 +494,8 @@ class Platform():
         if self.location == 'loading':
             print('Already in loading position')
             return
-        elif self.location == 'calibration':
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
-            # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-            self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.location = 'loading'
         return
@@ -431,15 +509,9 @@ class Platform():
         if self.location == 'calibration':
             print('Already in calibration position')
             return
-        elif self.location == "above_calibration":
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
-            self.location = 'calibration'
-            return
-        elif self.location == 'plate':
-            self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
-        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
+
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
 
         self.location = 'calibration'
@@ -454,15 +526,8 @@ class Platform():
         if self.location == 'above_calibration':
             print('Already above calibration position')
             return
-        elif self.location == 'calibration':
-            self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
-            self.location = 'above_calibration'
-            return
-        elif self.location == 'plate':
-            self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 100)
-        # self.move_dobot(self.loading_position['x']-50,self.tube_position['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 100)
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
 
         self.location = 'above_calibration'
         return
@@ -472,8 +537,9 @@ class Platform():
         Moves the Dobot to well A1 specified in the plate metadata file
         '''
         print('\nMoving to printing position...')
-        if self.location == 'calibration' or self.location == 'home' or self.location == 'above_calibration':
-            self.move_to_loading_position()
+
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
+        self.move_dobot(self.top_left['x'],self.top_left['y'], 150)
         self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
         self.current_row = 0
         self.current_column = 0
@@ -485,8 +551,9 @@ class Platform():
         Takes a set of XYZ coordinates and moves the Dobot to that location
         '''
         print('Dobot moving...',end='')
-        last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVLXYZMode, x,y,z,0, isQueued = 1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVLXYZMode, x,y,z,0, isQueued = 1)
+        last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
+        self.run_cmd()
         self.current_coords = {'x':float(x),'y':float(y),'z':float(z)}
         print('Current position: x={}\ty={}\tz={}'.format(round(x,2),round(y,2),round(z,2)))
         return
@@ -496,8 +563,8 @@ class Platform():
         Moves the Dobot to a defined well while checking that the well is within
         the bounds of the plate
         '''
-        if self.location == 'calibration' or self.location == 'home':
-            self.move_to_loading_position()
+        if self.location in ['calibration','above_calibration','home']:
+            self.move_to_print_position()
 
         if row <= self.max_rows and column <= self.max_columns and row >= 0 and column >= 0:
             target_coords = self.get_well_coords(row,column)
@@ -511,24 +578,33 @@ class Platform():
             return
 
     def activate_gripper(self):
-        last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
+        dType.SetIODO(self.api, 17, 1, 1)
+        dType.SetIODO(self.api, 18, 1, 1)
+        self.run_cmd()
         return
 
     def deactivate_gripper(self):
         last_index = dType.SetEndEffectorGripper(self.api,False,False,isQueued=1)
-        run_cmd(self.api,last_index)
+        dType.SetIODO(self.api, 17, 0, 1)
+        dType.SetIODO(self.api, 18, 1, 1)
+        print('softReleasing...')
+        self.run_cmd()
         return
 
     def open_gripper(self):
-        last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
+        dType.SetIODO(self.api, 17, 1, 1)
+        dType.SetIODO(self.api, 18, 0, 1)
+        self.run_cmd()
         print('- Gripper open')
         return
 
     def close_gripper(self):
-        last_index = dType.SetEndEffectorGripper(self.api,True,True,isQueued=1)
-        run_cmd(self.api,last_index)
+        # last_index = dType.SetEndEffectorGripper(self.api,True,True,isQueued=1)
+        dType.SetIODO(self.api, 17, 0, 1)
+        dType.SetIODO(self.api, 18, 0, 1)
+        self.run_cmd()
         print('- Gripper closed')
         return
 
@@ -603,10 +679,30 @@ class Platform():
         print("Print an array? (y/n)")
         if not ask_yes_no():
             return
-        all_arrays = glob.glob('../Print_arrays/*.csv')
+
+        all_exp = glob.glob('../../Print_arrays/*/"')
+        print('Possible experiments:')
+        for i,arr in enumerate(all_exp):
+            print('{}: {}'.format(i,arr.split('\\')[-2]))
+
+        possible_inputs = [str(i) for i in range(len(all_exp))]
+
+        temp = True
+        while temp:
+            print('Enter desired array number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            else:
+                current_path = all_exp[int(entry)]
+                temp = False
+        print('Chosen array: ',current_path)
+
+        all_arrays = glob.glob('{}/*.csv'.format(current_path))
+        all_arrays = [p for p in all_arrays if 'key' not in p]
         print('Possible arrays:')
         for i,arr in enumerate(all_arrays):
-            print('{}: {}'.format(i,arr))
+            print('{}: {}'.format(i,arr.split('---')[-1].split('.')[0]))
 
         possible_inputs = [str(i) for i in range(len(all_arrays))]
         temp = True
@@ -619,14 +715,15 @@ class Platform():
                 current_path = all_arrays[int(entry)]
                 temp = False
         print('Chosen array: ',current_path)
-
+        self.move_to_print_position()
         arr = pd.read_csv(current_path)
         for index, line in arr.iterrows():
+            print('\nOn {} out of {}'.format(index+1,len(arr)))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(20,3000,50000,line['Droplet'])
-            print('On {} out of {}'.format(index,len(arr)))
 
-
+        print('\nPrint array complete\n')
+        return
 
 
     def drive_platform(self):
@@ -658,12 +755,18 @@ class Platform():
                 self.move_to_loading_position()
             elif c == '[':
                 self.move_to_tube_position()
+            elif c == ']':
+                self.move_above_tube_position()
             elif c == 'y':
                 self.change_print_position()
             elif c == 'h':
                 self.change_tube_position()
             elif c == 't':
                 self.print_droplets(20,3000,50000,10)
+            elif c == 'T':
+                for i in range(5):
+                    self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,20)
+                    time.sleep(0.5)
             elif c == 'o':
                 self.pressure_on()
             elif c == 'i':
@@ -672,24 +775,30 @@ class Platform():
                 self.set_pressure(10,10)
             elif c == 'j':
                 self.set_pressure(2,0.3)
-            elif c == 'r':
-                self.pressure_test()
+            # elif c == 'r':
+            #     self.pressure_test()
             elif c == 'x':
                 self.refuel_test()
             elif c == 'c':
                 self.pulse_test()
             elif c == 'b':
+                # self.check_pressures()
+                self.calibrate_chip()
+            elif c == 'B':
+                # self.get_pressure()
                 self.resistance_testing()
+            # elif c == 'r':
+            #     self.record_flow()
             elif c == 'r':
-                self.record_flow()
+                self.reset_dobot_position()
             elif c == 'P':
                 self.print_array()
             elif c == 'n':
                 self.dobot_manual_drive()
-            elif c == ']':
-                self.refuel_open()
-            elif c == ';':
-                self.pulse_open()
+            # elif c == ']':
+            #     self.refuel_open()
+            # elif c == ';':
+            #     self.pulse_open()
             elif c == '.':
                 self.close_valves()
 
@@ -724,6 +833,7 @@ class Platform():
 
     def disconnect_dobot(self):
         self.deactivate_gripper()
+        dType.SetQueuedCmdStopExec(self.api)
         dType.DisconnectDobot(self.api)
         return
 
@@ -738,18 +848,38 @@ class Platform():
         '''
         Sends the desired printing instructions to the Arduino
         '''
-        print('starting print...',end='')
+        print('starting print...')
+        if count == 0:
+            print('No droplets to print')
+            return
+        delay = (count/freq)
+        self.get_pressure()
+        extra = self.ser.readall().decode()
         self.ser.write(SetParam_CtrlSeq(freq,pulse_width,refuel_width,count))
         time.sleep(0.2)
         self.ser.write(Switch_CtrlSeq('close'))
-        time.sleep(0.2)
 
+        time.sleep(delay)
         current = self.ser.read().decode()
+        i = 0
         while current != 'C':
             current = self.ser.read().decode()
-            time.sleep(0.1)
-
+            time.sleep(0.05)
+            i += 1
+            if i > 10:
+                print('\n---Missed the signal, repeating print---\n')
+                self.print_droplets(freq,pulse_width,refuel_width,count)
+                print('Completed the fix for the missed signal')
+                break
+        print(' - Count: ',i)
         time.sleep(0.1)
+        after = self.ser.readall().decode()
+        if 'N' in after or 'F' in after:
+            print('\n---Incorrect parameters, repeating print---\n')
+            self.print_droplets(freq,pulse_width,refuel_width,count)
+            print('Completed the fix for the incorrect parameters')
+            return
+        self.get_pressure()
         print('print complete')
         return
 
@@ -783,20 +913,27 @@ class Platform():
         self.mcfs = PGMFC()
         self.mcfs.monitor_start(span=100)
         time.sleep(1)
-        self.channel_pulse = self.mcfs[1]
-        self.channel_refuel = self.mcfs[2]
+        self.channel_pulse = self.mcfs[2]
+        self.channel_refuel = self.mcfs[1]
         print('Pressure regulator is connected')
 
         self.set_pressure(2, 0.3)
         return
 
-    def set_pressure(self,pulse,refuel,runtime=600):
+    def set_pressure(self,pulse,refuel,runtime=6000):
         self.pulse_pressure = pulse
         self.refuel_pressure = refuel
 
         self.channel_pulse.set_params(peak=pulse,runtime=runtime)
         self.channel_refuel.set_params(peak=refuel,runtime=runtime)
         print("Pulse={}\tRefuel={}".format(pulse,refuel))
+        return
+
+    def get_pressure(self):
+        print_pressure = self.channel_pulse.get_pressure()
+        refuel_pressure = self.channel_refuel.get_pressure()
+        print('Print:',print_pressure)
+        print('Refuel:',refuel_pressure)
         return
 
     def pulse_on(self):
@@ -838,11 +975,226 @@ class Platform():
         '''
         return (counter * droplets * (width * 10**-6) * (6874.76 * pressure)) / (volume * 10**-9)
 
+    def charge_chip(self):
+        print('\nAdjust pressure:')
+        while True:
+            try:
+                c = msvcrt.getch().decode()
+            except:
+                print('Not a valid input')
+            if c == 'x':
+                self.refuel_test()
+            elif c == 'c':
+                self.pulse_test()
+            elif c =='t':
+                self.print_droplets(20,3000,50000,10)
+            elif c =='T':
+                self.test_print()
+            elif c == '1':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+            elif c == '2':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+            elif c == '3':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+            elif c == '4':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+            elif c == '6':
+                self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+            elif c == '7':
+                self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+            elif c == '8':
+                self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+            elif c == '9':
+                self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+            elif c == '[':
+                self.move_to_tube_position()
+            elif c == ']':
+                self.move_above_tube_position()
+
+            elif c == "q":
+                print('Finished charging? (y/n)')
+                if ask_yes_no():
+                    print('Quitting...')
+                    section_break()
+                    return
+                else:
+                    print("Didn't quit")
+            else:
+                print("not valid")
+
+    def test_print(self):
+        for i in range(5):
+            self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,20)
+            time.sleep(0.5)
+        return
+
+    def test_pressure(self,print_pressure):
+        self.set_pressure(print_pressure,0.6)
+        self.move_to_tube_position()
+        self.charge_chip()
+        self.set_pressure(self.pulse_pressure,print_pressure/12)
+
+        self.move_above_tube_position()
+        input('Tare the scale, place tube in holder, and press Enter')
+        self.move_to_tube_position()
+        self.test_print()
+        self.move_above_tube_position()
+
+        current_vol = float(input('Enter mass here: '))
+        input('Place tube back in holder and press enter')
+        return current_vol
+
+
+    def calibrate_chip(self,target = 6):
+        print('Calibrate chip? (y/n)')
+        if not ask_yes_no():
+            print('Quitting...')
+            section_break()
+            return
+        self.calibrate_print(target=target)
+        input('Place tube back in holder and press enter')
+        print('\n---Calibrate the refuel pressure---')
+        self.set_pressure(self.pulse_pressure,self.pulse_pressure/8)
+        self.charge_chip()
+        print('\nCompleted calibration')
+        section_break()
+        return
+
+
+    def calibrate_print(self,target = 6):
+        x = []
+        y = []
+        current_print = 2
+        charge_refuel = 0.6
+        tolerance = 0.05
+
+        while True:
+            print('Current measurements:{}\t{}'.format(x,y))
+            current_vol = self.test_pressure(current_print)
+            if current_vol <= target*(1+tolerance) and current_vol >= target*(1-tolerance):
+                print('Volume is within tolerance')
+                return
+            print('y: add point\tn: repeat test,\tq: quit')
+            answer = ask_yes_no_quit()
+            if answer == 'quit':
+                print('Quitting calibration')
+                return
+            elif answer == 'yes':
+                print('Adding measurement')
+                x.append(current_print)
+                y.append(current_vol)
+            elif answer == 'no':
+                print('Skipping measurement')
+            if len(x) <= 2:
+                if current_vol > target:
+                    current_print -= 0.5
+                else:
+                    current_print += 0.5
+                print('Setting pressure to ',current_print)
+
+            else:
+                [m,b] = np.polyfit(np.array(x),np.array(y),1)
+                current_print = (target - b) / m
+                print('Setting pressure to ',current_print)
+
+
+    # def calibrate_chip(self):
+    #     print('Calibrate chip? (y/n)')
+    #     if not ask_yes_no():
+    #         print('Quitting...')
+    #         section_break()
+    #         return
+    #     target = 6
+    #     x = []
+    #     y = []
+    #     self.move_above_tube_position()
+    #     input('Tare the scale and place tube in holder')
+    #     self.move_to_tube_position()
+    #     current_print = 2
+    #     charge_refuel = 0.6
+    #     self.set_pressure(current_print,charge_refuel)
+    #     self.charge_chip()
+    #     self.set_pressure(current_print,current_print/12)
+    #     time.sleep(0.5)
+    #     self.move_to_tube_position()
+    #     self.test_print()
+    #     self.move_above_tube_position()
+    #     current_vol = float(input('Enter mass here: '))
+    #     input('Place tube back in holder and press enter')
+    #     x.append(current_print)
+    #     y.append(current_vol)
+    #     if current_vol > target:
+    #         current_print -= 0.5
+    #     else:
+    #         current_print += 0.5
+    #
+    #     self.set_pressure(current_print,charge_refuel)
+    #     self.charge_chip()
+    #     self.set_pressure(current_print,current_print/12)
+    #     self.move_to_tube_position()
+    #     time.sleep(0.5)
+    #     self.test_print()
+    #     self.move_above_tube_position()
+    #     current_vol = float(input('Enter mass here: '))
+    #     input('Place tube back in holder and press enter')
+    #
+    #     tolerance = 0.05
+    #
+    #     if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
+    #         x.append(current_print)
+    #         y.append(current_vol)
+    #
+    #         [m,b] = np.polyfit(np.array(x),np.array(y),1)
+    #
+    #         current_print = (target - b) / m
+    #         self.set_pressure(current_print,charge_refuel)
+    #         self.charge_chip()
+    #         self.set_pressure(current_print,current_print/12)
+    #         self.move_to_tube_position()
+    #         time.sleep(0.5)
+    #         self.test_print()
+    #         self.move_above_tube_position()
+    #         current_vol = float(input('Enter mass here: '))
+    #
+    #     if current_vol < target*(1-tolerance) or current_vol > target*(1+tolerance):
+    #         print('Repeating test')
+    #         x.append(current_print)
+    #         y.append(current_vol)
+    #
+    #         [m,b] = np.polyfit(np.array(x),np.array(y),1)
+    #
+    #         current_print = (target - b) / m
+    #         self.set_pressure(current_print,charge_refuel)
+    #         self.charge_chip()
+    #         self.set_pressure(current_print,current_print/12)
+    #         self.move_to_tube_position()
+    #         time.sleep(0.5)
+    #         self.test_print()
+    #         self.move_above_tube_position()
+    #         current_vol = float(input('Enter mass here: '))
+    #
+    #     input('Place tube back in holder and press enter')
+    #     print('\nCalibrate the refuel pressure:')
+    #     self.set_pressure(current_print,current_print/8)
+    #     self.charge_chip()
+    #     print('\nCompleted calibration')
+    #     section_break()
+    #     return
+
+
+
+
+
     def resistance_testing(self):
         '''
         Directs the operator through the calibration process that is defined in
         the printing_calibration_methods.md file
         '''
+        print('Test resistance (y/n)')
+        if not ask_yes_no():
+            print('Quitting...')
+            section_break()
+            return
         print_title('Resistance testing mode...')
 
         chip = PrinterHead()
@@ -974,72 +1326,96 @@ class Platform():
                 chip.pred_refuel_pressure = ((chip.pred_print_pressure)*pulse_per_sec*chip.refuel_resistance) / (chip.total_resistance*(1-pulse_per_sec))
 
                 self.set_pressure(chip.pred_print_pressure,chip.pred_refuel_pressure)
+                print('Pred pressures: R: {}\tP: {}'.format(chip.pred_refuel_pressure,chip.pred_print_pressure))
                 self.pressure_on()
+
+                input('Place tube back in holder and press Enter ')
                 self.move_to_tube_position()
 
-                print('\nCheck the refuel pressure\n')
-                hold = True
-                while hold:
-                    try:
-                        c = msvcrt.getch().decode()
-                        print(c)
-                        valid = True
-                    except:
-                        print('Not a valid input')
-                        valid = False
-                    if valid:
-                        if c == "x":
-                            self.refuel_test()
-                        elif c == "c":
-                            self.pulse_test()
-                        elif c == 'z':
-                            self.print_droplets(20,3000,50000,10)
-                            print('completed test print')
-
-                        elif c == '1':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
-                        elif c == '2':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-                        elif c == '3':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
-                        elif c == '4':
-                            self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
-
-                        elif c == '6':
-                            self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
-                        elif c == '7':
-                            self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-                        elif c == '8':
-                            self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
-                        elif c == '9':
-                            self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-
-                        elif c == "q":
-                            print('Continue to testing droplet volume? (y/n)')
-                            if ask_yes_no():
-                                hold = False
-                            else:
-                                print("Didn't quit")
-                        else:
-                            print("Not a valid input")
-
-                chip.real_refuel_pressure = self.refuel_pressure
-
-                self.move_above_tube_position()
-                input('\nZero the scale and press Enter\n')
-                self.move_to_tube_position()
-                droplet_count = 100
-                print("Printing {} droplets...".format(droplet_count))
-
-                self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,droplet_count)
-                test_mass = float(input('\nType in the mass press Enter\n'))
-                test_volume = test_mass / chip.density
-
-                chip.set_droplet_volume((test_volume / droplet_count) *1000)
-
-                print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
+                self.check_pressures()
 
                 return
+
+    def check_pressures(self):
+        self.move_to_tube_position()
+        print('\nCheck the refuel pressure\n')
+        hold = True
+        while hold:
+            try:
+                c = msvcrt.getch().decode()
+                print(c)
+                valid = True
+            except:
+                print('Not a valid input')
+                valid = False
+            if valid:
+                if c == "x":
+                    self.refuel_test()
+                elif c == "c":
+                    self.pulse_test()
+                elif c == 'z':
+                    self.print_droplets(20,3000,50000,10)
+                    print('completed test print')
+
+                elif c == '1':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+                elif c == '2':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+                elif c == '3':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+                elif c == '4':
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+
+                elif c == '6':
+                    self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+                elif c == '7':
+                    self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+                elif c == '8':
+                    self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+                elif c == '9':
+                    self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+
+                elif c == "q":
+                    print('Test droplet volume? (y/n)')
+                    if ask_yes_no():
+                        hold = False
+                    else:
+                        print("Didn't quit")
+                else:
+                    print("Not a valid input")
+
+        # chip.real_refuel_pressure = self.refuel_pressure
+        print('Adjusted refuel:',self.refuel_pressure)
+        print('Adjusted print:',self.pulse_pressure)
+
+        self.move_above_tube_position()
+        input('\nZero the scale and press Enter\n')
+        self.move_to_tube_position()
+        droplet_count = 100
+        print("Printing {} droplets...".format(droplet_count))
+        for i in range(5):
+            self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,20)
+            time.sleep(0.5)
+        self.move_above_tube_position()
+
+        test_mass = float(input('\nType in the mass press Enter\n'))
+        # test_volume = test_mass / chip.density
+
+        # chip.set_droplet_volume((test_volume / droplet_count) *1000)
+
+        # print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
+
+        print('Repeat test? (y/n)')
+        if ask_yes_no():
+            # self.move_to_tube_position()
+            self.check_pressures()
+            return
+        else:
+            print('Calibration complete')
+            return
+        return
+
+
 
 
     def record_flow(self):
