@@ -45,21 +45,21 @@ def ask_yes_no():
         elif c == 'n':
             return False
 
-    def ask_yes_no_quit():
-        '''
-        Simple function to double check that the operator wants to commit to an action
-        '''
-        possible = ['y','n']
-        while True:
-            c = msvcrt.getch().decode()
-            if c not in possible:
-                print('Choose a valid key')
-            elif c == 'y':
-                return 'yes'
-            elif c == 'n':
-                return 'no'
-            elif c == 'q':
-                return 'quit'
+def ask_yes_no_quit():
+    '''
+    Simple function to double check that the operator wants to commit to an action
+    '''
+    possible = ['y','n','q']
+    while True:
+        c = msvcrt.getch().decode()
+        if c not in possible:
+            print('Choose a valid key')
+        elif c == 'y':
+            return 'yes'
+        elif c == 'n':
+            return 'no'
+        elif c == 'q':
+            return 'quit'
 
 def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
     '''
@@ -86,6 +86,10 @@ def Switch_CtrlSeq(state):
         single_Ctrl = [255,255,239,239]
     elif state == 'print':
         single_Ctrl = [255,255,254,254]
+    elif state == 'refuel':
+        single_Ctrl = [255,255,237,237]
+    elif state == 'pulse':
+        single_Ctrl = [255,255,235,235]
     return bytes(single_Ctrl)
 
 def get_coords(coords):
@@ -1029,7 +1033,7 @@ class Platform():
         return
 
     def test_pressure(self,print_pressure):
-        self.set_pressure(print_pressure,0.6)
+        self.set_pressure(print_pressure,1)
         self.move_to_tube_position()
         self.charge_chip()
         self.set_pressure(self.pulse_pressure,print_pressure/12)
@@ -1064,8 +1068,15 @@ class Platform():
     def calibrate_print(self,target = 6):
         x = []
         y = []
-        current_print = 2
-        charge_refuel = 0.6
+
+        print('Printing WCE? (y/n)')
+        if ask_yes_no():
+            print('printing wce...')
+            current_print = 3.5
+            charge_refuel = 1.2
+        else:
+            current_print = 2
+            charge_refuel = 0.6
         tolerance = 0.05
 
         while True:
@@ -1081,16 +1092,16 @@ class Platform():
                 return
             elif answer == 'yes':
                 print('Adding measurement')
-                x.append(current_print)
+                x.append(self.pulse_pressure)
                 y.append(current_vol)
             elif answer == 'no':
                 print('Skipping measurement')
-            if len(x) <= 2:
+            if len(x) == 1:
                 if current_vol > target:
-                    current_print -= 0.5
+                    current_print = self.pulse_pressure - 0.5
                 else:
-                    current_print += 0.5
-                print('Setting pressure to ',current_print)
+                    current_print = self.pulse_pressure + 0.5
+                print('--- Setting pressure to ',current_print)
 
             else:
                 [m,b] = np.polyfit(np.array(x),np.array(y),1)
@@ -1441,13 +1452,31 @@ class Platform():
         input()
 
     def refuel_open(self):
+        print('Open refuel valve? (y/n)')
+        if not ask_yes_no():
+            print('Quitting...')
+            section_break()
+            return
         self.ser.write(Switch_CtrlSeq('refuel'))
+        return
 
     def pulse_open(self):
+        print('Open printing valve? (y/n)')
+        if not ask_yes_no():
+            print('Quitting...')
+            section_break()
+            return
         self.ser.write(Switch_CtrlSeq('pulse'))
+        return
+
+    def quick_eject(self):
+        print('Quick ejecting')
+        print_droplets(20,0,0,10)
+        return
 
     def close_valves(self):
         self.ser.write(Switch_CtrlSeq('close'))
+        return
 
     def pressure_test(self):
         print("Test the pressure regulator? (y/n)")
