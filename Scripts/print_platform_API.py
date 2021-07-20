@@ -164,12 +164,14 @@ class Platform():
         # Define the initial starting conditions
         self.frequency = 20
         self.pulse_width = 3000
-        self.refuel_width = 47000
+        # self.refuel_width = 47000
+        self.refuel_width = 3000
 
         self.test_droplet_count = 5
         self.default_chamber_volume = 7.5
 
         self.printer_heads = {}
+        self.height = 225
 
     def initiate_all(self):
         section_break()
@@ -498,8 +500,8 @@ class Platform():
         if self.location == 'loading':
             print('Already in loading position')
             return
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], 150)
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+        self.move_dobot(self.loading_position['x'],self.loading_position['y'], self.height)
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.location = 'loading'
         return
@@ -514,8 +516,8 @@ class Platform():
             print('Already in calibration position')
             return
 
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.height)
         self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
 
         self.location = 'calibration'
@@ -530,8 +532,8 @@ class Platform():
         if self.location == 'above_calibration':
             print('Already above calibration position')
             return
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], 150)
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+        self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.height)
 
         self.location = 'above_calibration'
         return
@@ -541,9 +543,11 @@ class Platform():
         Moves the Dobot to well A1 specified in the plate metadata file
         '''
         print('\nMoving to printing position...')
-
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], 150)
-        self.move_dobot(self.top_left['x'],self.top_left['y'], 150)
+        if self.location == 'plate':
+            print('Already above plate')
+            return
+        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+        self.move_dobot(self.top_left['x'],self.top_left['y'], self.height)
         self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
         self.current_row = 0
         self.current_column = 0
@@ -684,12 +688,16 @@ class Platform():
         if not ask_yes_no():
             return
 
-        all_exp = glob.glob('../../Print_arrays/*/"')
+        all_exp = glob.glob('../../Print_arrays/*')
+        if len(all_exp) == 0:
+            print('No available experiments')
+            return
         print('Possible experiments:')
         for i,arr in enumerate(all_exp):
-            print('{}: {}'.format(i,arr.split('\\')[-2]))
+            # print('{}: {}'.format(i,arr.split('\\')[-2]))
+            print('{}: {}'.format(i,arr))
 
-        possible_inputs = [str(i) for i in range(len(all_exp))]
+        possible_inputs = [str(i) for i in range(len(all_exp))] + ['q']
 
         temp = True
         while temp:
@@ -697,6 +705,9 @@ class Platform():
             entry = input()
             if entry not in possible_inputs:
                 print('Not valid')
+            elif entry == 'q':
+                print('Quitting...')
+                return
             else:
                 current_path = all_exp[int(entry)]
                 temp = False
@@ -708,13 +719,16 @@ class Platform():
         for i,arr in enumerate(all_arrays):
             print('{}: {}'.format(i,arr.split('---')[-1].split('.')[0]))
 
-        possible_inputs = [str(i) for i in range(len(all_arrays))]
+        possible_inputs = [str(i) for i in range(len(all_arrays))] + ['q']
         temp = True
         while temp:
             print('Enter desired array number: ')
             entry = input()
             if entry not in possible_inputs:
                 print('Not valid')
+            elif entry == 'q':
+                print('Quitting...')
+                return
             else:
                 current_path = all_arrays[int(entry)]
                 temp = False
@@ -726,6 +740,56 @@ class Platform():
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(20,3000,50000,line['Droplet'])
 
+        print('\nPrint array complete\n')
+        return
+
+
+    def print_large_volumes(self):
+        print("Print a large volume array? (y/n)")
+        if not ask_yes_no():
+            return
+
+        all_arr = glob.glob('../../Print_arrays/large_volume_arrays/*.csv')
+        if len(all_arr) == 0:
+            print('No available arrays')
+            return
+        print('Possible arrays:')
+        for i,arr in enumerate(all_arr):
+            # print('{}: {}'.format(i,arr.split('\\')[-2]))
+            print('{}: {}'.format(i,arr))
+        print('q: Quit')
+        possible_inputs = [str(i) for i in range(len(all_arr))] + ['q']
+
+        temp = True
+        while temp:
+            print('Enter desired array number: ')
+            entry = input()
+            if entry not in possible_inputs:
+                print('Not valid')
+            elif entry == 'q':
+                print('Quitting...')
+                return
+            else:
+                current_path = all_arr[int(entry)]
+                temp = False
+        print('Chosen array: ',current_path)
+        print('Filling tip...')
+        self.move_to_tube_position()
+        # self.refuel_width = 3000
+        self.print_droplets(5,0,self.refuel_width,15)
+
+        self.move_to_print_position()
+        arr = pd.read_csv(current_path)
+        for index, line in arr.iterrows():
+            if index in [24,48,72,96]:
+                print('Refilling...')
+                self.move_to_tube_position()
+                self.print_droplets(5,0,self.refuel_width,8)
+                print('returning to print...')
+                self.move_to_print_position()
+            print('\nOn {} out of {}'.format(index+1,len(arr)))
+            self.move_to_well(line['Row'],line['Column'])
+            self.print_droplets(20,self.pulse_width,0,line['Droplet'])
         print('\nPrint array complete\n')
         return
 
@@ -776,7 +840,7 @@ class Platform():
             elif c == 'i':
                 self.pressure_off()
             elif c == 'u':
-                self.set_pressure(10,10)
+                self.set_pressure(1.1,-5)
             elif c == 'j':
                 self.set_pressure(2,0.3)
             # elif c == 'r':
@@ -797,14 +861,23 @@ class Platform():
                 self.reset_dobot_position()
             elif c == 'P':
                 self.print_array()
+            elif c == 'V':
+                self.print_large_volumes()
             elif c == 'n':
                 self.dobot_manual_drive()
             # elif c == ']':
             #     self.refuel_open()
             # elif c == ';':
             #     self.pulse_open()
+            # elif c == '.':
+            #     self.close_valves()
+            elif c == ';':
+                self.pulse_width += 500
+                print('Current pulse width: ',self.pulse_width)
             elif c == '.':
-                self.close_valves()
+                self.pulse_width -= 500
+                print('Current pulse width: ',self.pulse_width)
+
 
             elif c == '1':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
@@ -892,8 +965,12 @@ class Platform():
         Defined printing protocol used in calibration
         '''
         print('Refuel test')
-        print(self.frequency,0,self.refuel_width,self.test_droplet_count)
-        self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count)
+        # print(self.frequency,0,self.refuel_width,self.test_droplet_count)
+        # print(self.frequency,0,self.refuel_width,1)
+        print(self.frequency,0,3000,1)
+        # self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count)
+        self.print_droplets(self.frequency,0,self.refuel_width,1)
+
         return
 
     def pulse_test(self):
@@ -901,7 +978,11 @@ class Platform():
         Defined printing protocol used in calibration
         '''
         print('Pulse test')
-        self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count)
+        # self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count)
+        # self.print_droplets(self.frequency,self.pulse_width,0,1)
+        self.print_droplets(self.frequency,3000,0,1)
+        print(self.pulse_width)
+
         return
 
     def close_ard(self):
