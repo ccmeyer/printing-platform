@@ -1,0 +1,33 @@
+{
+  "base_path":"C:/Users/conar/repos/printing-platform/",
+  "Dobot_port": "COM3",
+  "Arduino_port":"COM6",
+  "robot_type":"M1",
+  "plate_type": "shallow-384_well_plate",
+  "default_dispenser":"droplet",
+  "default_reagent":"water",
+  "dispenser_types":{
+    "droplet":{
+      "refuel_pressure":0.3,
+      "pulse_pressure":2,
+      "refuel_width":47000,
+      "pulse_width":3000,
+      "test_droplet_count":5,
+      "frequency":20,
+      "height":150,
+      "max_volume":200,
+      "min_volume":20
+    },
+    "p1000":{
+      "refuel_pressure":-2,
+      "pulse_pressure":1.1,
+      "refuel_width":3000,
+      "pulse_width":3000,
+      "test_droplet_count":1,
+      "frequency":5,
+      "height":225,
+      "max_volume":1000,
+      "min_volume":400
+    }
+  }
+}
