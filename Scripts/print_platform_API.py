@@ -212,7 +212,7 @@ class Platform():
         print('Possible modes:',self.possible_dispensers)
 
         self.mode = None
-        self.select_mode(mode_name=self.default_settings['default_type'])
+        self.select_mode(mode_name=self.default_settings['default_dispenser'])
         return
 
     def select_mode(self,mode_name=False):
@@ -367,9 +367,9 @@ class Platform():
 
             with open(self.calibration_file_path) as json_file:
                 self.calibration_data =  json.load(json_file)
-        self.home_position = self.calibration_data['home_position']
-        self.loading_position = self.calibration_data['loading_position']
-        self.tube_position = self.calibration_data['tube_position']
+        # self.home_position = self.calibration_data['home_position']
+        # self.loading_position = self.calibration_data['loading_position']
+        # self.tube_position = self.calibration_data['tube_position']
 
         self.get_plate_data()
 
@@ -400,7 +400,9 @@ class Platform():
             return
         print("Homing...")
         self.reset_dobot_position()
-        last_index = dType.SetHOMECmd(self.api, temp = 0, isQueued = 1)
+        if not self.sim:
+            if self.robot_type == 'Magician':
+                last_index = dType.SetHOMECmd(self.api, temp = 0, isQueued = 1)
         self.run_cmd()
         self.location = 'home'
         return
@@ -509,7 +511,7 @@ class Platform():
         corrected, the new positions are stored in the plate metadata file.
         '''
         if not ask_yes_no(message="Change print position? (y/n)"): return
-        self.move_to_print_position()
+        self.move_to_location(location='print')
         self.dobot_manual_drive()
         coord_diffs = {'x':(self.current_coords['x'] - self.top_left['x']),'y':(self.current_coords['y'] - self.top_left['y']),'z':(self.current_coords['z'] - self.top_left['z'])}
         print(coord_diffs)
@@ -541,15 +543,15 @@ class Platform():
         self.write_plate_data()
         return
 
-    def change_tube_position(self):
-        '''
-        Changes the position of the calibration tube located in the tube rack
-        '''
-        if not ask_yes_no(message="Change tube position? (y/n)"): return
-        self.move_to_tube_position()
+    def change_position(self,location=False):
+        if not location:
+            location = select_options(list(self.calibration_data.keys()))
+        if not location in self.calibration_data.keys():
+            print('{} not present in calibration data')
+            return
+        self.move_to_location(location=location)
         self.dobot_manual_drive()
-        self.tube_position = self.current_coords
-
+        self.calibration_data[location] = self.current_coords
         self.write_printing_calibrations()
         return
 
@@ -574,76 +576,40 @@ class Platform():
         '''
         Updates the print calibrations json file
         '''
-        if not ask_yes_no(message="Store print calibrations? (y/n)"): return
-        self.calibration_data['loading_position'] = self.loading_position
-        self.calibration_data['tube_position'] = self.tube_position
-
         if not ask_yes_no(message="Write print position to file? (y/n)"): return
         with open(self.calibration_file_path, 'w') as outfile:
             json.dump(self.calibration_data, outfile)
         print("Printing calibrations saved")
 
-    def move_to_loading_position(self):
-        '''
-        Moves the Dobot to the loading position specified in
-        printing_calibrations.json
-        '''
-        print('Moving to loading position...')
-        if self.location == 'loading':
-            print('Already in loading position')
+    def move_to_location(self,location=False,above=False,direct=False):
+        print('Current',self.location)
+        if not location:
+            location = select_options(list(self.calibration_data.keys()))
+        if above:
+            location_name = '_'.join(['above',location])
+        else:
+            location_name = location
+        print('Moving to:',location_name)
+
+        if self.location == location_name:
+            print('Already in {} position'.format(location_name))
             return
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'], self.height)
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.location = 'loading'
-        return
-
-    def move_to_tube_position(self):
-        '''
-        Moves the Dobot to the tube position specified in
-        printing_calibrations.json
-        '''
-        print('\nMoving to calibration position...')
-        if self.location == 'calibration':
-            print('Already in calibration position')
+        available_locations = list(self.calibration_data.keys()) + ['_'.join(['above',k]) for k in self.calibration_data.keys()]
+        if location not in available_locations:
+            print('{} not present in calibration data')
             return
-
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.height)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.tube_position['z'])
-
-        self.location = 'calibration'
-        return
-
-    def move_above_tube_position(self):
-        '''
-        Moves the Dobot to the tube position specified in
-        printing_calibrations.json
-        '''
-        print('\nMoving to calibration position...')
-        if self.location == 'above_calibration':
-            print('Already above calibration position')
-            return
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
-        self.move_dobot(self.tube_position['x'],self.tube_position['y'], self.height)
-
-        self.location = 'above_calibration'
-        return
-
-    def move_to_print_position(self):
-        '''
-        Moves the Dobot to well A1 specified in the plate metadata file
-        '''
-        print('\nMoving to printing position...')
-        if self.location == 'plate':
-            print('Already above plate')
-            return
-        self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
-        self.move_dobot(self.top_left['x'],self.top_left['y'], self.height)
-        self.move_dobot(self.top_left['x'],self.top_left['y'],self.top_left['z'])
-        self.current_row = 0
-        self.current_column = 0
-        self.location = 'plate'
+        if direct == False and above == False:
+            self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'])
+        elif direct == True and above == False:
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'])
+        elif direct == False and above == True:
+            self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+        elif direct == True and above == True:
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+        self.location = location_name
         return
 
     def move_dobot(self,x,y,z):
@@ -663,13 +629,12 @@ class Platform():
         Moves the Dobot to a defined well while checking that the well is within
         the bounds of the plate
         '''
-        if self.location in ['calibration','above_calibration','home']:
-            self.move_to_print_position()
+        if self.location != 'print':
+            self.move_to_location(location='print')
 
         if row <= self.max_rows and column <= self.max_columns and row >= 0 and column >= 0:
             target_coords = self.get_well_coords(row,column)
             self.move_dobot(target_coords['x'],target_coords['y'],target_coords['z'])
-            self.location = 'plate'
             self.current_row = row
             self.current_column = column
             return
@@ -797,7 +762,7 @@ class Platform():
         all_arrays = [p for p in all_arrays if 'key' not in p]
         chosen_path = select_options(all_arrays,message='Select one of the arrays:',trim=True)
 
-        self.move_to_print_position()
+        self.move_to_location(location='print')
         arr = pd.read_csv(chosen_path)
         for index, line in arr.iterrows():
             print('\nOn {} out of {}'.format(index+1,len(arr)))
@@ -815,18 +780,18 @@ class Platform():
         chosen_path = select_options(all_arr, message='Select one of the following arrays:',trim=True)
 
         print('Filling tip...')
-        self.move_to_tube_position()
+        self.move_to_location(location='tube')
         self.print_droplets(self.frequency,0,self.refuel_width,15)
 
-        self.move_to_print_position()
+        self.move_to_location(location='print')
         arr = pd.read_csv(chosen_path)
         for index, line in arr.iterrows():
             if index in [24,48,72,96]:
                 print('Refilling...')
-                self.move_to_tube_position()
+                self.move_to_location(location='tube')
                 self.print_droplets(self.frequency,0,self.refuel_width,8)
                 print('returning to print...')
-                self.move_to_print_position()
+                self.move_to_location(location='print')
             print('\nOn {} out of {}'.format(index+1,len(arr)))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet'])
@@ -859,17 +824,18 @@ class Platform():
             elif c == 'g':
                 self.load_gripper()
             elif c == 'p':
-                self.move_to_print_position()
+                self.move_to_location(location='print')
             elif c == 'l':
-                self.move_to_loading_position()
+                self.move_to_location(location='loading')
             elif c == '[':
-                self.move_to_tube_position()
+                self.move_to_location(location='tube')
             elif c == ']':
-                self.move_above_tube_position()
+                self.move_to_location(location='tube',above=True)
             elif c == 'y':
                 self.change_print_position()
             elif c == 'h':
-                self.change_tube_position()
+                # self.change_position(location='loading')
+                self.change_position()
             elif c == 't':
                 self.print_droplets_current(10)
             elif c == 'T':
@@ -908,6 +874,8 @@ class Platform():
                 self.print_large_volumes()
             elif c == 'n':
                 self.dobot_manual_drive()
+            elif c == '!':
+                self.move_to_location()
             # elif c == ']':
             #     self.refuel_open()
             # elif c == ';':
@@ -1144,9 +1112,9 @@ class Platform():
             elif c == '9':
                 self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
             elif c == '[':
-                self.move_to_tube_position()
+                self.move_to_location(location='tube')
             elif c == ']':
-                self.move_above_tube_position()
+                self.move_to_location(location='tube',above=True)
 
             elif c == "q":
                 if ask_yes_no(message='Finished charging? (y/n)'):
@@ -1167,15 +1135,15 @@ class Platform():
 
     def test_pressure(self,print_pressure):
         self.set_pressure(print_pressure,1)
-        self.move_to_tube_position()
+        self.move_to_location(location='tube')
         self.charge_chip()
         self.set_pressure(self.pulse_pressure,print_pressure/12)
 
-        self.move_above_tube_position()
+        self.move_to_location(location='tube',above=True)
         input('Tare the scale, place tube in holder, and press Enter')
-        self.move_to_tube_position()
+        self.move_to_location(location='tube')
         self.test_print()
-        self.move_above_tube_position()
+        self.move_to_location(location='tube',above=True)
 
         current_vol = float(input('Enter mass here: '))
         input('Place tube back in holder and press enter')
@@ -1244,7 +1212,7 @@ class Platform():
 
 
     def check_pressures(self):
-        self.move_to_tube_position()
+        self.move_to_location(location='tube')
         print('\nCheck the refuel pressure\n')
         hold = True
         while hold:
@@ -1294,15 +1262,15 @@ class Platform():
         print('Adjusted refuel:',self.refuel_pressure)
         print('Adjusted print:',self.pulse_pressure)
 
-        self.move_above_tube_position()
+        self.move_to_location(location='tube',above=True)
         input('\nZero the scale and press Enter\n')
-        self.move_to_tube_position()
+        self.move_to_location(location='tube')
         droplet_count = 100
         print("Printing {} droplets...".format(droplet_count))
         for i in range(5):
             self.print_droplets_current(20)
             time.sleep(0.5)
-        self.move_above_tube_position()
+        self.move_to_location(location='tube',above=True)
 
         test_mass = float(input('\nType in the mass press Enter\n'))
         # test_volume = test_mass / chip.density
@@ -1312,7 +1280,7 @@ class Platform():
         # print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
 
         if ask_yes_no(message='Repeat test? (y/n)'):
-            # self.move_to_tube_position()
+            # self.move_to_location(location='tube')
             self.check_pressures()
             return
         else:
