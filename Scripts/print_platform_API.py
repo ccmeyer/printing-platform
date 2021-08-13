@@ -10,6 +10,11 @@ import pandas as pd
 import math
 import cv2
 import glob
+import os
+import tempfile
+from pynput import keyboard
+from pynput.keyboard import Key
+
 
 # robot_names = ['Magician','M1']
 # for index,name in enumerate(robot_names):
@@ -131,6 +136,13 @@ def select_options(lst,message='Select one of the options:', trim=False):
     print('Option selected: ',lst[int(enteredStr)],'\n')
     return lst[int(enteredStr)]
 
+def ask_for_number(message='Enter number:'):
+    try:
+        return float(input(message))
+
+    except:
+        print('Not a valid input')
+        ask_for_number()
 
 # class Dispenser(dispenser_type=False,reagent=false):
 #     '''
@@ -205,7 +217,6 @@ class Platform():
             self.default_settings =  json.load(json_file)
         print('Read the default_settings.json file')
         self.base = self.default_settings['base_path']
-
         self.robot_type = self.default_settings['robot_type']
 
         self.possible_dispensers = list(self.default_settings['dispenser_types'].keys())
@@ -281,7 +292,6 @@ class Platform():
     def initiate_all(self):
         section_break()
         print('Initializing all components')
-
         if not self.sim:
             self.init_pressure()
             self.init_dobot()
@@ -346,7 +356,6 @@ class Platform():
             return
 
         dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
-
         return
 
     def get_dobot_calibrations(self):
@@ -367,13 +376,7 @@ class Platform():
 
             with open(self.calibration_file_path) as json_file:
                 self.calibration_data =  json.load(json_file)
-        # self.home_position = self.calibration_data['home_position']
-        # self.loading_position = self.calibration_data['loading_position']
-        # self.tube_position = self.calibration_data['tube_position']
-
         self.get_plate_data()
-
-
         return
 
     def run_cmd(self):
@@ -581,12 +584,12 @@ class Platform():
             json.dump(self.calibration_data, outfile)
         print("Printing calibrations saved")
 
-    def move_to_location(self,location=False,above=False,direct=False):
+    def move_to_location(self,location=False,height='exact',direct=False):
         print('Current',self.location)
         if not location:
             location = select_options(list(self.calibration_data.keys()))
-        if above:
-            location_name = '_'.join(['above',location])
+        if height != 'exact':
+            location_name = '_'.join([height,location])
         else:
             location_name = location
         print('Moving to:',location_name)
@@ -598,30 +601,38 @@ class Platform():
         if location not in available_locations:
             print('{} not present in calibration data')
             return
-        if direct == False and above == False:
+        if direct == False and height == 'exact':
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'])
-        elif direct == True and above == False:
+        elif direct == True and height == 'exact':
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'])
-        elif direct == False and above == True:
+        elif direct == False and height == 'above':
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
-        elif direct == True and above == True:
+        elif direct == True and height == 'above':
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+        elif direct == False and height == 'close':
+            self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'] + 30)
+        elif direct == True and height == 'close':
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'] + 30)
         self.location = location_name
         return
 
-    def move_dobot(self,x,y,z):
+    def move_dobot(self,x,y,z,verbose=True):
         '''
         Takes a set of XYZ coordinates and moves the Dobot to that location
         '''
-        print('Dobot moving...',end='')
+        if verbose:
+            print('Dobot moving...',end='')
         if not self.sim:
             last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
             self.run_cmd()
         self.current_coords = {'x':float(x),'y':float(y),'z':float(z)}
-        print('Current position: x={}\ty={}\tz={}'.format(round(x,2),round(y,2),round(z,2)))
+        if verbose:
+            print('Current position: x={}\ty={}\tz={}'.format(round(x,2),round(y,2),round(z,2)))
         return
 
     def move_to_well(self,row,column):
@@ -634,7 +645,8 @@ class Platform():
 
         if row <= self.max_rows and column <= self.max_columns and row >= 0 and column >= 0:
             target_coords = self.get_well_coords(row,column)
-            self.move_dobot(target_coords['x'],target_coords['y'],target_coords['z'])
+            print('Moving to well {}-{}'.format(row,column))
+            self.move_dobot(target_coords['x'],target_coords['y'],target_coords['z'],verbose=False)
             self.current_row = row
             self.current_column = column
             return
@@ -751,9 +763,40 @@ class Platform():
             self.move_dobot(x,y,z)
         return
 
+    def on_release(self,key):
+        if key == keyboard.Key.esc:
+            print('Pause pressed')
+            self.temp_file.write(b'\npause')
+
+    def start_monitor(self):
+        self.pause_counter = 0
+        self.temp_file = tempfile.TemporaryFile()
+        self.temp_file.write(b'empty')
+        self.listener = keyboard.Listener(
+            on_release=self.on_release)
+        self.listener.start()
+        return
+
+    def stop_monitor(self):
+        self.listener.stop()
+        self.temp_file.close()
+        return
+
+    def check_for_pause(self):
+        self.temp_file.seek(0)
+        text = self.temp_file.read().decode("utf-8")
+        if text.count('pause') > self.pause_counter:
+            print('Paused!')
+            if ask_yes_no(message="Quit print? (y/n)"):
+                print('Quitting\n')
+                return True
+            self.pause_counter = text.count('pause')
+        return False
+
     def print_array(self):
         if not ask_yes_no(message="Print an array? (y/n)"):
             return
+        self.start_monitor()
 
         all_exp = self.get_all_paths('Print_arrays/*/',base=True)
         experiment_folder = select_options(all_exp,message='Select one of the experiments:',trim=True)
@@ -766,9 +809,11 @@ class Platform():
         arr = pd.read_csv(chosen_path)
         for index, line in arr.iterrows():
             print('\nOn {} out of {}'.format(index+1,len(arr)))
+            time.sleep(0.5)
+            if self.check_for_pause(): return
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets_current(line['Droplet'])
-
+        self.stop_monitor()
         print('\nPrint array complete\n')
         return
 
@@ -776,6 +821,8 @@ class Platform():
     def print_large_volumes(self):
         if not ask_yes_no(message="Print a large volume array? (y/n)"):
             return
+        self.start_monitor()
+
         all_arr = self.get_all_paths('Print_arrays/large_volume_arrays/*.csv',base=True)
         chosen_path = select_options(all_arr, message='Select one of the following arrays:',trim=True)
 
@@ -786,6 +833,8 @@ class Platform():
         self.move_to_location(location='print')
         arr = pd.read_csv(chosen_path)
         for index, line in arr.iterrows():
+            print('\nOn {} out of {}'.format(index+1,len(arr)))
+            if self.check_for_pause(): return
             if index in [24,48,72,96]:
                 print('Refilling...')
                 self.move_to_location(location='tube')
@@ -795,9 +844,9 @@ class Platform():
             print('\nOn {} out of {}'.format(index+1,len(arr)))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet'])
+        self.stop_monitor()
         print('\nPrint array complete\n')
         return
-
 
     def drive_platform(self):
         '''
@@ -830,7 +879,7 @@ class Platform():
             elif c == '[':
                 self.move_to_location(location='tube')
             elif c == ']':
-                self.move_to_location(location='tube',above=True)
+                self.move_to_location(location='tube',height='above')
             elif c == 'y':
                 self.change_print_position()
             elif c == 'h':
@@ -858,6 +907,8 @@ class Platform():
                 self.refuel_test()
             elif c == 'c':
                 self.pulse_test()
+            elif c == 'C':
+                self.calibrate_pipet()
             elif c == 'b':
                 # self.check_pressures()
                 self.calibrate_chip()
@@ -943,7 +994,7 @@ class Platform():
         '''
         Sends the desired printing instructions to the Arduino
         '''
-        print('starting print...')
+        print('starting print... ',end='')
         if self.sim:
             print('simulated print:',freq,pulse_width,refuel_width,count)
             return
@@ -951,7 +1002,7 @@ class Platform():
             print('No droplets to print')
             return
         delay = (count/freq)
-        self.get_pressure()
+        # self.get_pressure()
         extra = self.ser.readall().decode()
         self.ser.write(SetParam_CtrlSeq(freq,pulse_width,refuel_width,count))
         time.sleep(0.2)
@@ -977,7 +1028,7 @@ class Platform():
             self.print_droplets(freq,pulse_width,refuel_width,count)
             print('Completed the fix for the incorrect parameters')
             return
-        self.get_pressure()
+        # self.get_pressure()
         print('print complete')
         return
 
@@ -1026,15 +1077,14 @@ class Platform():
         if not self.sim:
             self.channel_pulse.set_params(peak=pulse,runtime=runtime)
             self.channel_refuel.set_params(peak=refuel,runtime=runtime)
-        print("Pulse={}\tRefuel={}".format(pulse,refuel))
+        print("Setting pressure: Pulse={}\tRefuel={}".format(pulse,refuel))
         return
 
     def get_pressure(self):
         if not self.sim:
             print_pressure = self.channel_pulse.get_pressure()
             refuel_pressure = self.channel_refuel.get_pressure()
-        print('Print:',print_pressure)
-        print('Refuel:',refuel_pressure)
+        print("Current pressure: Pulse={}\tRefuel={}".format(pulse,refuel))
         return
 
     def pulse_on(self):
@@ -1114,7 +1164,7 @@ class Platform():
             elif c == '[':
                 self.move_to_location(location='tube')
             elif c == ']':
-                self.move_to_location(location='tube',above=True)
+                self.move_to_location(location='tube',height='above')
 
             elif c == "q":
                 if ask_yes_no(message='Finished charging? (y/n)'):
@@ -1139,11 +1189,11 @@ class Platform():
         self.charge_chip()
         self.set_pressure(self.pulse_pressure,print_pressure/12)
 
-        self.move_to_location(location='tube',above=True)
+        self.move_to_location(location='tube',height='above')
         input('Tare the scale, place tube in holder, and press Enter')
         self.move_to_location(location='tube')
         self.test_print()
-        self.move_to_location(location='tube',above=True)
+        self.move_to_location(location='tube',height='above')
 
         current_vol = float(input('Enter mass here: '))
         input('Place tube back in holder and press enter')
@@ -1262,7 +1312,7 @@ class Platform():
         print('Adjusted refuel:',self.refuel_pressure)
         print('Adjusted print:',self.pulse_pressure)
 
-        self.move_to_location(location='tube',above=True)
+        self.move_to_location(location='tube',height='above')
         input('\nZero the scale and press Enter\n')
         self.move_to_location(location='tube')
         droplet_count = 100
@@ -1270,7 +1320,7 @@ class Platform():
         for i in range(5):
             self.print_droplets_current(20)
             time.sleep(0.5)
-        self.move_to_location(location='tube',above=True)
+        self.move_to_location(location='tube',height='above')
 
         test_mass = float(input('\nType in the mass press Enter\n'))
         # test_volume = test_mass / chip.density
