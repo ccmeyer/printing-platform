@@ -16,7 +16,8 @@
       "frequency":20,
       "height":150,
       "max_volume":200,
-      "min_volume":20
+      "min_volume":20,
+      "target_disp_volume":0.06
     },
     "p1000":{
       "refuel_pressure":-2,
@@ -27,7 +28,8 @@
       "frequency":5,
       "height":225,
       "max_volume":1000,
-      "min_volume":400
+      "min_volume":400,
+      "target_disp_volume":18
     }
   }
 }
