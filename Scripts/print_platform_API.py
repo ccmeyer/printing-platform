@@ -11,62 +11,14 @@ import math
 import cv2
 import glob
 import os
-import tempfile
 from pynput import keyboard
 from pynput.keyboard import Key
+import datetime
 
+import tkinter as tk
+from tkinter import ttk
+import threading
 
-# robot_names = ['Magician','M1']
-# for index,name in enumerate(robot_names):
-#     print(index,name)
-# enteredStr = input("Please enter which robot is in use by index: ")
-# while not enteredStr.isnumeric() or int(enteredStr) >= len(robot_names) or int(enteredStr) < 0:
-#     enteredStr = input("The entered command is invalid. Please enter a valid index: ")
-# if int(enteredStr) == 0:
-#     # self._implType = 0
-#     import Dobot.DobotDllType as dType
-#     # self.api = dType.load()
-#     print("Selected the Magician")
-# elif int(enteredStr) == 1:
-#     # self._implType = 1
-#     # import DobotM1.DobotDllType as dType
-#     # from DobotM1.DobotDllType import PTPMode
-#     # self.api = dType.load()
-#     print("Selected the M1")
-# else:
-#     print("No options selected")
-
-def ask_yes_no(message='Choose yes (y) or no (n)'):
-    '''
-    Simple function to double check that the operator wants to commit to an action
-    '''
-    print(message)
-    possible = ['y','n']
-    while True:
-        c = msvcrt.getch().decode()
-        if c not in possible:
-            print('Choose a valid key')
-        elif c == 'y':
-            return True
-        elif c == 'n':
-            return False
-
-def ask_yes_no_quit(message='Choose yes (y), no (n), or quit (q)'):
-    '''
-    Simple function to double check that the operator wants to commit to an action
-    '''
-    print(message)
-    possible = ['y','n','q']
-    while True:
-        c = msvcrt.getch().decode()
-        if c not in possible:
-            print('Choose a valid key')
-        elif c == 'y':
-            return 'yes'
-        elif c == 'n':
-            return 'no'
-        elif c == 'q':
-            return 'quit'
 
 def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
     '''
@@ -144,55 +96,71 @@ def ask_for_number(message='Enter number:'):
         print('Not a valid input')
         ask_for_number()
 
-# class Dispenser(dispenser_type=False,reagent=false):
-#     '''
-#     The Dispenser class defines an attachment for the platform containing a
-#      reagent and used for printing. Each printer head or pipet tip should be
-#      identified as a separate instance of this class
-#     '''
-#     def __init__(self):
-#         print('Created a new dispenser')
-#
-#
-#         return
-#
-#     def set_settings(self,dispenser_type=False,reagent='water',next=False):
-#         if next:
-#             current_index = self.possible_dispensers.index(self.mode)
-#             new_index = (current_index + 1) % len(self.possible_dispensers)
-#             print(self.possible_dispensers[new_index])
-#
-#             self.load_dispenser_defaults(self.possible_dispensers[new_index])
-#             return
-#         elif not dispenser_type:
-#             mode = select_options(self.possible_dispensers)
-#             self.load_dispenser_defaults(self.possible_dispensers[new_index])
-#             return
-#         elif self.mode == dispenser_type:
-#             print('Already in the selected mode')
-#             self.load_dispenser_defaults(dispenser_type)
-#             return
-#         else:
-#             if not dispenser_type in self.possible_dispensers:
-#                 print('Not an available mode')
-#                 return
-#             else:
-#                 self.load_dispenser_defaults(dispenser_type,reagent=reagent)
-#                 return
-#
-#     def load_dispenser_defaults(self,mode,reagent='water'):
-#         print('Loading mode:',mode)
-#         self.height = self.default_settings['dispenser_types'][mode]['height']
-#         self.refuel_width = self.default_settings['dispenser_types'][mode]['refuel_width']
-#         self.pulse_width = self.default_settings['dispenser_types'][mode]['pulse_width']
-#         self.refuel_pressure = self.default_settings['dispenser_types'][mode]['refuel_pressure'][reagent]
-#         self.pulse_pressure = self.default_settings['dispenser_types'][mode]['pulse_pressure'][reagent]
-#         self.test_droplet_count = self.default_settings['dispenser_types'][mode]['test_droplet_count']
-#         self.frequency = self.default_settings['dispenser_types'][mode]['frequency']
-#         self.mode = mode
-#         self.get_dobot_calibrations()
-#         return
 
+class Monitor(threading.Thread):
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.start()
+
+    def callback(self):
+        self.root.quit()
+
+    def run(self):
+        self.root = tk.Tk()
+        self.root.geometry("300x300")
+        self.root.title("Status window")
+        self.root.protocol("WM_DELETE_WINDOW", self.callback)
+        self.root.resizable(0, 0)
+
+        # configure the grid
+        self.root.columnconfigure(0, weight=1)
+        self.root.columnconfigure(1, weight=2)
+
+        self.label_0 = tk.StringVar()
+        self.label_0.set('Mode')
+        self.l_0 = ttk.Label(self.root, textvariable=self.label_0)
+        self.l_0.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+
+        self.info_0 = tk.StringVar()
+        self.info_0.set('---')
+        self.i_0 = ttk.Label(self.root, textvariable=self.info_0)
+        self.i_0.grid(column=1, row=0, sticky=tk.W, padx=5, pady=5)
+
+        self.label_1 = tk.StringVar()
+        self.label_1.set('Current Row')
+        self.l_l = ttk.Label(self.root, textvariable=self.label_1)
+        self.l_l.grid(column=0, row=1, sticky=tk.W, padx=5, pady=5)
+
+        self.info_1 = tk.StringVar()
+        self.info_1.set('---')
+        self.i_1 = ttk.Label(self.root, textvariable=self.info_1)
+        self.i_1.grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
+
+        self.label_2 = tk.StringVar()
+        self.label_2.set('Current Column')
+        self.l_2 = ttk.Label(self.root, textvariable=self.label_2)
+        self.l_2.grid(column=0, row=2, sticky=tk.W, padx=5, pady=5)
+
+        self.info_2 = tk.StringVar()
+        self.info_2.set('---')
+        self.i_2 = ttk.Label(self.root, textvariable=self.info_2)
+        self.i_2.grid(column=1, row=2, sticky=tk.W, padx=5, pady=5)
+
+        self.label_3 = tk.StringVar()
+        self.label_3.set('Current keyboard function')
+        self.l_3 = ttk.Label(self.root, textvariable=self.label_3)
+        self.l_3.grid(column=0, row=3, sticky=tk.W, padx=5, pady=5)
+
+        self.info_3 = tk.StringVar()
+        self.info_3.set('---')
+        self.i_3 = ttk.Label(self.root, textvariable=self.info_3)
+        self.i_3.grid(column=1, row=3, sticky=tk.W, padx=5, pady=5)
+
+        self.root.mainloop()
+
+    def end_monitor(self):
+        print('Close the monitor...')
 
 ##### MAIN CLASS DEFINITION  ######
 
@@ -203,14 +171,88 @@ class Platform():
     '''
     def __init__(self):
         print('Created platform instance')
-        self.read_defaults()
-        # self.sim = ask_yes_no(message='Run Simulation? (y/n)')
+        # self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
         self.sim = True
-
-        self.location = 'home'
+        self.monitor = Monitor()
+        self.keyboard_config = 'empty'
+        self.location = 'unknown'
         self.current_row = 0
         self.current_column = 0
+        self.start_tracker()
+        self.read_defaults()
         return
+
+    def update_monitor(self):
+        self.monitor.info_0.set(str(self.mode))
+        self.monitor.info_1.set(str(self.current_row))
+        self.monitor.info_2.set(str(self.current_column))
+        self.monitor.info_3.set(str(self.keyboard_config))
+
+
+    def on_press(self,key):
+        self.shift = False
+        self.current_key = key
+        self.time_stamp = datetime.datetime.now().timestamp()
+        if key == keyboard.Key.esc:
+            self.pause = True
+        if key == Key.shift or key == Key.shift_r:
+            self.shift = True
+
+    def start_tracker(self):
+        self.pause = False
+        self.listener = keyboard.Listener(
+            on_press=self.on_press)
+        self.listener.start()
+        self.current_key = False
+        self.time_stamp = datetime.datetime.now().timestamp()
+        return
+
+    def stop_monitor(self):
+        self.listener.stop()
+        return
+
+    def get_current_key(self):
+        while True:
+            if self.current_key and datetime.datetime.now().timestamp() - self.time_stamp < 0.1:
+                if self.current_key not in [Key.shift,Key.shift_r]:
+                    try:
+                        output = self.current_key.char
+                    except:
+                        output = self.current_key
+                    self.current_key = False
+                    return output
+            time.sleep(0.01)
+
+    def ask_yes_no(self,message='Choose yes (y) or no (n)'):
+        print(message)
+        while True:
+            key = self.get_current_key()
+            if type(key) != type('string'):
+                continue
+            if key == 'y':
+                return True
+            elif key == 'n':
+                return False
+            else:
+                print(f'{key} is not a valid input')
+
+    def ask_yes_no_quit(self,message='Choose yes (y), no (n), or quit (q)'):
+        '''
+        Simple function to double check that the operator wants to commit to an action
+        '''
+        print(message)
+        while True:
+            key = self.get_current_key()
+            if type(key) != type('string'):
+                continue
+            if key == 'y':
+                return 'yes'
+            elif key == 'n':
+                return 'no'
+            elif key == 'q':
+                return 'quit'
+            else:
+                print(f'{key} is not a valid input')
 
     def read_defaults(self):
         with open('./default_settings.json') as json_file:
@@ -261,6 +303,7 @@ class Platform():
         self.calibrated = False
         self.tracking_volume = False
         self.mode = mode
+        self.update_monitor()
         self.get_dobot_calibrations()
         return
 
@@ -294,9 +337,8 @@ class Platform():
         print('Initializing all components')
         if not self.sim:
             self.init_pressure()
-            self.init_dobot()
+            self.init_dobot(self.default_settings['Dobot_port'])
             self.init_ard(self.default_settings['Arduino_port'])
-
         print('All components are connected')
         section_break()
         return
@@ -313,7 +355,7 @@ class Platform():
         section_break()
         return
 
-    def init_dobot(self):
+    def init_dobot(self,port):
         '''
         Establishes the connection to the Dobot and sets its movement parameters.
         It also reads in the print calibration file which includes the locations
@@ -337,11 +379,11 @@ class Platform():
         deviceList = dType.SearchDobot(self.api)
         print(deviceList)
 
-        if self.default_settings['Dobot_port'] in deviceList:
+        if port in deviceList:
             print('Default Dobot COM port found')
             target_port = self.default_settings['Dobot_port']
         else:
-            print('Unable to find default Dobot COM port')
+            print(f'Unable to find default Dobot COM port {port}')
             target_port = select_options(deviceList)
 
         print("Connecting... ", target_port)
@@ -399,7 +441,7 @@ class Platform():
         protocol. Reseting the position ensures that the arm is not extended
         when rotating
         '''
-        if not ask_yes_no(message='Home Dobot? (y/n)'):
+        if not self.ask_yes_no(message='Home Dobot? (y/n)'):
             return
         print("Homing...")
         self.reset_dobot_position()
@@ -415,7 +457,7 @@ class Platform():
         Moves the Dobot to a location where its range is limited to avoid
         the arm making contact during homing
         '''
-        if not ask_yes_no(message="Reset Dobot position? (y/n)"):
+        if not self.ask_yes_no(message="Reset Dobot position? (y/n)"):
             return
         self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
         self.move_dobot(self.home_position['x'],self.home_position['y'],self.home_position['z'])
@@ -502,8 +544,8 @@ class Platform():
         z = self.top_left['z'] + (row * self.row_z_step) + (column * self.col_z_step)
         return {'x':x, 'y':y, 'z':z}
 
-    # def modify_coords(self,coords_1,coords_2):
-    #     coord_diffs = {'x':(coords_1['x'] - coords_2['x']),'y':(coords_1s['y'] - coords_2['y']),'z':(coords_1s['z'] - coords_2['z'])}
+    def modify_coords(self,coords_1,coords_2):
+        coord_diffs = {'x':(coords_1['x'] - coords_2['x']),'y':(coords_1s['y'] - coords_2['y']),'z':(coords_1s['z'] - coords_2['z'])}
 
 
     def change_print_position(self):
@@ -513,7 +555,7 @@ class Platform():
         drive the dobot to correct any deviations. Once all the points are
         corrected, the new positions are stored in the plate metadata file.
         '''
-        if not ask_yes_no(message="Change print position? (y/n)"): return
+        if not self.ask_yes_no(message="Change print position? (y/n)"): return
         self.move_to_location(location='print')
         self.dobot_manual_drive()
         coord_diffs = {'x':(self.current_coords['x'] - self.top_left['x']),'y':(self.current_coords['y'] - self.top_left['y']),'z':(self.current_coords['z'] - self.top_left['z'])}
@@ -562,7 +604,7 @@ class Platform():
         '''
         Takes all of the current plate data and updates the metadata file
         '''
-        if not ask_yes_no(message="Store print position? (y/n)"): return
+        if not self.ask_yes_no(message="Store print position? (y/n)"): return
         self.plate_data['top_left'] = self.top_left
         self.plate_data['top_right'] = self.top_right
         self.plate_data['bottom_right'] = self.bottom_right
@@ -570,7 +612,7 @@ class Platform():
 
         print(self.plate_data)
 
-        if not ask_yes_no(message="Write print position to file? (y/n)"): return
+        if not self.ask_yes_no(message="Write print position to file? (y/n)"): return
         with open(self.plate_file_path, 'w') as outfile:
             json.dump(self.plate_data, outfile)
         print("Plate data saved")
@@ -579,7 +621,7 @@ class Platform():
         '''
         Updates the print calibrations json file
         '''
-        if not ask_yes_no(message="Write print position to file? (y/n)"): return
+        if not self.ask_yes_no(message="Write print position to file? (y/n)"): return
         with open(self.calibration_file_path, 'w') as outfile:
             json.dump(self.calibration_data, outfile)
         print("Printing calibrations saved")
@@ -649,6 +691,7 @@ class Platform():
             self.move_dobot(target_coords['x'],target_coords['y'],target_coords['z'],verbose=False)
             self.current_row = row
             self.current_column = column
+            self.update_monitor()
             return
         else:
             print("Well out of range")
@@ -703,7 +746,7 @@ class Platform():
         Initiates a protocol to open and close the gripper to make exchanging
         printer heads easier
         '''
-        if not ask_yes_no(message='Load gripper? (y/n)'): return
+        if not self.ask_yes_no(message='Load gripper? (y/n)'): return
         input('Press enter to open gripper')
         self.open_gripper()
         input('Press enter to close gripper')
@@ -719,6 +762,9 @@ class Platform():
         '''
         section_break()
         print("starting manual dobot control")
+        self.keyboard_config = 'Manual dobot control'
+        self.update_monitor()
+
         x = self.current_coords['x']
         y = self.current_coords['y']
         z = self.current_coords['z']
@@ -726,77 +772,53 @@ class Platform():
         step_num = len(possible_steps)*10
         step = possible_steps[abs(step_num) % len(possible_steps)]
         while True:
-            try:
-                c = msvcrt.getch().decode()
-            except:
-                print('Not a valid input')
-                c = 'n'
-            if c == "w":
+            key = self.get_current_key()
+            if key == Key.up:
                 x -= step
-            elif c == "s":
+            elif key == Key.down:
                 x += step
-            elif c == "a":
+            elif key == Key.left:
                 y -= step
-            elif c == "d":
+            elif key == Key.right:
                 y += step
-            elif c == "k":
+            elif key == "'":
                 z += step
-            elif c == "m":
+            elif key == "/":
                 z -= step
-            elif c == 'f':
+            elif key == ';':
                 step_num = step_num + 1
                 step = possible_steps[abs(step_num) % len(possible_steps)]
                 print('changed to {}'.format(step))
-            elif c == 'v':
+            elif key == '.':
                 step_num = step_num - 1
                 step = possible_steps[abs(step_num) % len(possible_steps)]
                 print('changed to {}'.format(step))
-            elif c == "q":
-                if ask_yes_no(message='Quit (y/n)'):
+            elif key == "q":
+                if self.ask_yes_no(message='Quit (y/n)'):
                     print('Quitting...')
                     section_break()
                     return
                 else:
                     print("Didn't quit")
             else:
-                print("not valid")
+                print(f'{key} is not a valid input')
             self.move_dobot(x,y,z)
         return
 
-    def on_release(self,key):
-        if key == keyboard.Key.esc:
-            print('Pause pressed')
-            self.temp_file.write(b'\npause')
-
-    def start_monitor(self):
-        self.pause_counter = 0
-        self.temp_file = tempfile.TemporaryFile()
-        self.temp_file.write(b'empty')
-        self.listener = keyboard.Listener(
-            on_release=self.on_release)
-        self.listener.start()
-        return
-
-    def stop_monitor(self):
-        self.listener.stop()
-        self.temp_file.close()
-        return
-
     def check_for_pause(self):
-        self.temp_file.seek(0)
-        text = self.temp_file.read().decode("utf-8")
-        if text.count('pause') > self.pause_counter:
-            print('Paused!')
-            if ask_yes_no(message="Quit print? (y/n)"):
+        if self.pause:
+            print('Process has been paused')
+            if self.ask_yes_no(message="Quit print? (y/n)"):
                 print('Quitting\n')
+                self.pause = False
                 return True
-            self.pause_counter = text.count('pause')
+        self.pause = False
         return False
 
     def print_array(self):
-        if not ask_yes_no(message="Print an array? (y/n)"):
+
+        if not self.ask_yes_no(message="Print an array? (y/n)"):
             return
-        self.start_monitor()
 
         all_exp = self.get_all_paths('Print_arrays/*/',base=True)
         experiment_folder = select_options(all_exp,message='Select one of the experiments:',trim=True)
@@ -813,15 +835,13 @@ class Platform():
             if self.check_for_pause(): return
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets_current(line['Droplet'])
-        self.stop_monitor()
         print('\nPrint array complete\n')
         return
 
 
     def print_large_volumes(self):
-        if not ask_yes_no(message="Print a large volume array? (y/n)"):
+        if not self.ask_yes_no(message="Print a large volume array? (y/n)"):
             return
-        self.start_monitor()
 
         all_arr = self.get_all_paths('Print_arrays/large_volume_arrays/*.csv',base=True)
         chosen_path = select_options(all_arr, message='Select one of the following arrays:',trim=True)
@@ -844,7 +864,6 @@ class Platform():
             print('\nOn {} out of {}'.format(index+1,len(arr)))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet'])
-        self.stop_monitor()
         print('\nPrint array complete\n')
         return
 
@@ -856,76 +875,75 @@ class Platform():
         '''
         section_break()
         print("Driving platform...")
-        c = None
+
         while True:
-            try:
-                c = msvcrt.getch().decode()
-            except:
-                print('Not a valid input')
-            if c == "w":
+            self.keyboard_config = 'General platform'
+            self.update_monitor()
+            key = self.get_current_key()
+            if key == Key.up:
                 self.move_to_well(self.current_row - 1, self.current_column)
-            elif c == "s":
+            elif key == Key.down:
                 self.move_to_well(self.current_row + 1, self.current_column)
-            elif c == "a":
+            elif key == Key.left:
                 self.move_to_well(self.current_row, self.current_column - 1 )
-            elif c == "d":
+            elif key == Key.right:
                 self.move_to_well(self.current_row, self.current_column + 1)
-            elif c == 'g':
+            elif key == 'g':
                 self.load_gripper()
-            elif c == 'p':
+            elif key == 'p':
                 self.move_to_location(location='print')
-            elif c == 'l':
+            elif key == 'l':
                 self.move_to_location(location='loading')
-            elif c == '[':
+            elif key == '[':
                 self.move_to_location(location='tube')
-            elif c == ']':
+            elif key == ']':
                 self.move_to_location(location='tube',height='above')
-            elif c == 'y':
+            elif key == 'y':
                 self.change_print_position()
-            elif c == 'h':
+            elif key == 'h':
                 # self.change_position(location='loading')
                 self.change_position()
-            elif c == 't':
+            elif key == 't':
                 self.print_droplets_current(10)
-            elif c == 'T':
+            elif key == 'T':
                 for i in range(5):
                     self.print_droplets_current(20)
                     time.sleep(0.5)
-            elif c == 'o':
+            elif key == 'o':
                 self.pressure_on()
-            elif c == 'i':
+            elif key == 'i':
                 self.pressure_off()
-            elif c == 'u':
+            elif key == 'u':
                 self.set_pressure(1.1,-5)
-            elif c == 'j':
+            elif key == 'j':
                 self.set_pressure(2,0.3)
-            elif c == 'M':
+            elif key == 'M':
                 self.select_mode()
             # elif c == 'r':
             #     self.pressure_test()
-            elif c == 'x':
+            elif key == 'x':
                 self.refuel_test()
-            elif c == 'c':
+            elif key == 'c':
                 self.pulse_test()
-            elif c == 'C':
+            elif key == 'C':
                 self.calibrate_pipet()
-            elif c == 'b':
+            elif key == 'b':
                 # self.check_pressures()
                 self.calibrate_chip()
-            elif c == 'B':
+            elif key == 'B':
                 # self.get_pressure()
                 self.resistance_testing()
             # elif c == 'r':
             #     self.record_flow()
-            elif c == 'r':
+            elif key == 'r':
                 self.reset_dobot_position()
-            elif c == 'P':
+            elif key == 'P':
                 self.print_array()
-            elif c == 'V':
+            elif key == 'V':
                 self.print_large_volumes()
-            elif c == 'n':
+            elif key == 'n':
                 self.dobot_manual_drive()
-            elif c == '!':
+            elif key == '!':
                 self.move_to_location()
             # elif c == ']':
             #     self.refuel_open()
@@ -933,42 +951,38 @@ class Platform():
             #     self.pulse_open()
             # elif c == '.':
             #     self.close_valves()
-            elif c == ';':
+            elif key == ';':
                 self.pulse_width += 500
                 print('Current pulse width: ',self.pulse_width)
-            elif c == '.':
+            elif key == '.':
                 self.pulse_width -= 500
                 print('Current pulse width: ',self.pulse_width)
-
-
-            elif c == '1':
+            elif key == '1':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
-            elif c == '2':
+            elif key == '2':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-            elif c == '3':
+            elif key == '3':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
-            elif c == '4':
+            elif key == '4':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
 
-            elif c == '6':
+            elif key == '6':
                 self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
-            elif c == '7':
+            elif key == '7':
                 self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-            elif c == '8':
+            elif key == '8':
                 self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
-            elif c == '9':
+            elif key == '9':
                 self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-
-            elif c == "q":
-                if ask_yes_no(message='Quit (y/n)'):
+            elif key == "q":
+                if self.ask_yes_no(message='Quit (y/n)'):
                     print('Quitting...')
                     section_break()
                     return
                 else:
                     print("Didn't quit")
             else:
-                print("not valid")
-        return
+                print('Please enter a valid key, not:',key)
 
     def disconnect_dobot(self):
         if not self.sim:
@@ -1167,7 +1181,7 @@ class Platform():
                 self.move_to_location(location='tube',height='above')
 
             elif c == "q":
-                if ask_yes_no(message='Finished charging? (y/n)'):
+                if self.ask_yes_no(message='Finished charging? (y/n)'):
                     print('Quitting...')
                     section_break()
                     return
@@ -1201,7 +1215,7 @@ class Platform():
 
 
     def calibrate_chip(self,target = 6):
-        if not ask_yes_no(message='Calibrate chip? (y/n)'):
+        if not self.ask_yes_no(message='Calibrate chip? (y/n)'):
             print('Quitting...')
             section_break()
             return
@@ -1219,7 +1233,7 @@ class Platform():
         x = []
         y = []
 
-        if ask_yes_no(message='Printing WCE? (y/n)'):
+        if self.ask_yes_no(message='Printing WCE? (y/n)'):
             print('printing wce...')
             current_print = 3.5
             charge_refuel = 1.2
@@ -1234,7 +1248,7 @@ class Platform():
             if current_vol <= target*(1+tolerance) and current_vol >= target*(1-tolerance):
                 print('Volume is within tolerance')
                 return
-            answer = ask_yes_no_quit(message='y: add point\tn: repeat test,\tq: quit')
+            answer = self.ask_yes_no_quit(message='y: add point\tn: repeat test,\tq: quit')
             if answer == 'quit':
                 print('Quitting calibration')
                 return
@@ -1301,7 +1315,7 @@ class Platform():
                     self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
 
                 elif c == "q":
-                    if ask_yes_no(message='Test droplet volume? (y/n)'):
+                    if self.ask_yes_no(message='Test droplet volume? (y/n)'):
                         hold = False
                     else:
                         print("Didn't quit")
@@ -1329,7 +1343,7 @@ class Platform():
 
         # print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
 
-        if ask_yes_no(message='Repeat test? (y/n)'):
+        if self.ask_yes_no(message='Repeat test? (y/n)'):
             # self.move_to_location(location='tube')
             self.check_pressures()
             return
@@ -1361,7 +1375,7 @@ class Platform():
         input()
 
     def refuel_open(self):
-        if not ask_yes_no(message='Open refuel valve? (y/n)'):
+        if not self.ask_yes_no(message='Open refuel valve? (y/n)'):
             print('Quitting...')
             section_break()
             return
@@ -1369,7 +1383,7 @@ class Platform():
         return
 
     def pulse_open(self):
-        if not ask_yes_no(message='Open printing valve? (y/n)'):
+        if not self.ask_yes_no(message='Open printing valve? (y/n)'):
             print('Quitting...')
             section_break()
             return
@@ -1386,7 +1400,7 @@ class Platform():
         return
 
     def pressure_test(self):
-        if not ask_yes_no(message="Test the pressure regulator? (y/n)"):
+        if not self.ask_yes_no(message="Test the pressure regulator? (y/n)"):
             return
         print("Load the dummy printer head")
         self.load_gripper()
