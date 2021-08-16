@@ -398,6 +398,12 @@ class Platform():
             return
 
         dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
+
+        if not self.sim:
+            print('current_coords:', dtype.GetPose(self.api))
+            self.current_coords = self.loading_position
+        else:
+            self.current_coords = self.loading_position
         return
 
     def get_dobot_calibrations(self):
@@ -525,7 +531,7 @@ class Platform():
         self.row_z_step = (self.bottom_left['z'] - self.top_left['z']) / (self.max_rows)
         self.col_z_step =  (self.top_right['z'] - self.top_left['z']) / (self.max_columns)
 
-        self.current_coords = self.top_left
+        # self.current_coords = self.top_left
         return
 
     def correct_xy_coords(self,x,y):
