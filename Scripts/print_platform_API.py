@@ -398,12 +398,6 @@ class Platform():
             return
 
         dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
-
-        if not self.sim:
-            print('current_coords:', dtype.GetPose(self.api))
-            self.current_coords = self.loading_position
-        else:
-            self.current_coords = self.loading_position
         return
 
     def get_dobot_calibrations(self):
@@ -424,6 +418,11 @@ class Platform():
 
             with open(self.calibration_file_path) as json_file:
                 self.calibration_data =  json.load(json_file)
+        if not self.sim:
+            print('current_coords:', dtype.GetPose(self.api))
+            self.current_coords = self.loading_position
+        else:
+            self.current_coords = self.loading_position
         self.get_plate_data()
         return
 
