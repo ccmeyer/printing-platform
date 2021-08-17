@@ -88,13 +88,13 @@ def select_options(lst,message='Select one of the options:', trim=False):
     print('Option selected: ',lst[int(enteredStr)],'\n')
     return lst[int(enteredStr)]
 
-def ask_for_number(message='Enter number:'):
+def ask_for_number(message='Enter number: '):
     try:
         return float(input(message))
 
     except:
         print('Not a valid input')
-        ask_for_number()
+        return ask_for_number()
 
 
 class Monitor(threading.Thread):
@@ -214,7 +214,7 @@ class Platform():
     def get_current_key(self):
         while True:
             if self.current_key and datetime.datetime.now().timestamp() - self.time_stamp < 0.1:
-                if self.current_key not in [Key.shift,Key.shift_r]:
+                if self.current_key not in [Key.shift,Key.shift_r,Key.enter]:
                     try:
                         output = self.current_key.char
                     except:
@@ -420,9 +420,9 @@ class Platform():
                 self.calibration_data =  json.load(json_file)
         if not self.sim:
             print('current_coords:', dtype.GetPose(self.api))
-            self.current_coords = self.loading_position
+            self.current_coords = self.calibration_data['loading']
         else:
-            self.current_coords = self.loading_position
+            self.current_coords = self.calibration_data['loading']
         self.get_plate_data()
         return
 
@@ -851,22 +851,27 @@ class Platform():
         all_arr = self.get_all_paths('Print_arrays/large_volume_arrays/*.csv',base=True)
         chosen_path = select_options(all_arr, message='Select one of the following arrays:',trim=True)
 
-        print('Filling tip...')
+        if not self.calibrated:
+            print('The pipet is currently not calibrated, please calibrate it')
+            return
+
+        num_asps = round(((self.max_volume - self.current_volume) / self.vol_per_asp),0)
+        print(f'Filling tip from {self.current_volume}...{num_asps}')
         self.move_to_location(location='tube')
-        self.print_droplets(self.frequency,0,self.refuel_width,15)
+        self.print_droplets(self.frequency,0,self.refuel_width ,num_asps,aspiration=True)
 
         self.move_to_location(location='print')
         arr = pd.read_csv(chosen_path)
         for index, line in arr.iterrows():
-            print('\nOn {} out of {}'.format(index+1,len(arr)))
             if self.check_for_pause(): return
-            if index in [24,48,72,96]:
-                print('Refilling...')
+            if self.current_volume < self.min_volume:
+                num_asps = round(((self.max_volume - self.current_volume) / self.vol_per_asp),0)
+                print(f'Refilling...{num_asps}')
                 self.move_to_location(location='tube')
-                self.print_droplets(self.frequency,0,self.refuel_width,8)
+                self.print_droplets(self.frequency,0,self.refuel_width,num_asps,aspiration=True)
                 print('returning to print...')
                 self.move_to_location(location='print')
-            print('\nOn {} out of {}'.format(index+1,len(arr)))
+            print('\nOn {} out of {} with {}'.format(index+1,len(arr),self.current_volume))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet'])
         print('\nPrint array complete\n')
@@ -1009,13 +1014,20 @@ class Platform():
         self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,count)
         return
 
-    def print_droplets(self,freq,pulse_width,refuel_width,count):
+    def print_droplets(self,freq,pulse_width,refuel_width,count,aspiration=False):
         '''
         Sends the desired printing instructions to the Arduino
         '''
         print('starting print... ',end='')
         if self.sim:
             print('simulated print:',freq,pulse_width,refuel_width,count)
+            if self.tracking_volume:
+                print('Volume tracking')
+                if aspiration:
+                    self.current_volume += (self.vol_per_asp * count)
+                else:
+                    self.current_volume -= (self.vol_per_disp * count)
+                print('Current volume: ',self.current_volume)
             return
         if count == 0:
             print('No droplets to print')
@@ -1048,6 +1060,13 @@ class Platform():
             print('Completed the fix for the incorrect parameters')
             return
         # self.get_pressure()
+        if self.tracking_volume:
+            print('Volume tracking')
+            if aspiration:
+                self.current_volume += (self.vol_per_asp * count)
+            else:
+                self.current_volume -= (self.vol_per_disp * count)
+            print('Current volume: ',self.current_volume)
         print('print complete')
         return
 
@@ -1142,20 +1161,12 @@ class Platform():
         if not self.sim: self.mcfs.close()
         return
 
-    def calc_resistance(self,counter,droplets,width,pressure,volume):
-        '''
-        Utilizes the equation defined in the printing_calibration_methods.md
-        file
-        '''
-        return (counter * droplets * (width * 10**-6) * (6874.76 * pressure)) / (volume * 10**-9)
-
     def charge_chip(self):
         print('\nAdjust pressure:')
+        self.keyboard_config = 'Printer head charging'
+        self.update_monitor()
         while True:
-            try:
-                c = msvcrt.getch().decode()
-            except:
-                print('Not a valid input')
+            c = self.get_current_key()
             if c == 'x':
                 self.refuel_test()
             elif c == 'c':
@@ -1214,7 +1225,7 @@ class Platform():
         self.test_print()
         self.move_to_location(location='tube',height='above')
 
-        current_vol = float(input('Enter mass here: '))
+        current_vol =self.ask_for_number(message='Enter mg of liquid printed: ')
         input('Place tube back in holder and press enter')
         return current_vol
 
@@ -1276,8 +1287,91 @@ class Platform():
                 print('Setting pressure to ',current_print)
         return
 
-    # def calibrate_pipet(self):
+    def calibrate_pipet_aspiration(self):
+        self.move_to_location(location='tube',height='above')
+        input('Tare the tube, place tube in holder, and press Enter ')
+        self.move_to_location(location='tube')
+        refuel_counter = 0
+        hold = True
+        self.keyboard_config = 'Pipet Charging'
+        self.update_monitor()
+        print("Press x to aspriate reagent until pipet is nearly full, then press q")
+        while hold:
+            key = self.get_current_key()
+            if key == "x":
+                refuel_counter += 1
+                self.refuel_test()
+            elif key == "q":
+                if self.ask_yes_no(message='Pipet tip full? (y/n)'):
+                    hold = False
+                else:
+                    print("Didn't quit")
+        self.move_to_location(location='tube',height='above')
+        self.current_volume = ask_for_number(message='Enter mg of liquid aspirated: ')
+        self.vol_per_asp = self.current_volume / refuel_counter
+        print('Volume aspirated per pulse:',self.vol_per_asp,'\n')
+        return
 
+    def calibrate_pipet_dispense(self,target=18):
+        tolerance = 0.05
+        x = []
+        y = []
+        hold = True
+        current_print = self.pulse_pressure
+
+        while hold:
+            self.set_pressure(current_print,self.refuel_pressure)
+            self.move_to_location(location='tube',height='close')
+
+            print_test_count = 5
+            for i in range(print_test_count):
+                self.pulse_test()
+
+            self.move_to_location(location='tube',height='above')
+            dispensed = ask_for_number(message='\nEnter mg of liquid dispensed: ')
+            self.current_disp_volume = dispensed / print_test_count
+            self.current_volume -= dispensed
+            print(f'Current volume {self.current_volume}')
+
+            if self.current_disp_volume <= target*(1+tolerance) and self.current_disp_volume >= target*(1-tolerance):
+                print('Volume is within tolerance, Calibration complete')
+                self.calibrated = True
+                self.tracking_volume = True
+                self.vol_per_disp = target
+                print(f'Volume per dispense is set to: {self.vol_per_disp}')
+                return
+            else:
+                answer = self.ask_yes_no_quit(message='y: add point\tn: repeat test,\tq: quit')
+                if answer == 'quit':
+                    print('Quitting calibration')
+                    return
+                elif answer == 'yes':
+                    print('Adding measurement')
+                    x.append(self.pulse_pressure)
+                    y.append(self.current_disp_volume)
+                elif answer == 'no':
+                    print('Skipping measurement')
+                if len(x) == 1:
+                    if self.current_disp_volume > target:
+                        current_print = self.pulse_pressure - 0.25
+                    else:
+                        current_print = self.pulse_pressure + 0.25
+                    print('--- Setting pressure to ',current_print)
+                else:
+                    [m,b] = np.polyfit(np.array(x),np.array(y),1)
+                    current_print = (target - b) / m
+                    print('Setting pressure to ',current_print)
+
+    def calibrate_pipet(self,target=18):
+        if not self.ask_yes_no(message='Calibrate pipet? (y/n)'):
+            print('Quitting...')
+            return
+        if self.mode != 'p1000':
+            print('Must be in p1000 mode to execute this calibration')
+            return
+        self.calibrate_pipet_aspiration()
+        self.calibrate_pipet_dispense(target=target)
+        return
 
 
     def check_pressures(self):
