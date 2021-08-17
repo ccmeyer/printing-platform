@@ -171,14 +171,15 @@ class Platform():
     '''
     def __init__(self):
         print('Created platform instance')
-        # self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
-        self.sim = True
+        self.start_tracker()
+        self.current_key = False
+        self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
+        # self.sim = False
         self.monitor = Monitor()
         self.keyboard_config = 'empty'
         self.location = 'unknown'
         self.current_row = 0
         self.current_column = 0
-        self.start_tracker()
         self.read_defaults()
         return
 
@@ -199,11 +200,11 @@ class Platform():
             self.shift = True
 
     def start_tracker(self):
+        print('starting traker')
         self.pause = False
         self.listener = keyboard.Listener(
             on_press=self.on_press)
         self.listener.start()
-        self.current_key = False
         self.time_stamp = datetime.datetime.now().timestamp()
         return
 
@@ -370,6 +371,7 @@ class Platform():
             import DobotM1.DobotDllType as dType
             from DobotM1.DobotDllType import PTPMode
 
+        global dType
         self.api = dType.load()
 
         CON_STR = {
@@ -398,6 +400,11 @@ class Platform():
             return
 
         dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
+        if not self.sim:
+            dobot_coords = dType.GetPose(self.api)
+            self.current_coords = {'x':dobot_coords[0],'y':dobot_coords[1],'z':dobot_coords[2]}
+            print('current_coords:', self.current_coords)
+            # self.current_coords = self.calibration_data['loading']
         return
 
     def get_dobot_calibrations(self):
@@ -418,10 +425,7 @@ class Platform():
 
             with open(self.calibration_file_path) as json_file:
                 self.calibration_data =  json.load(json_file)
-        if not self.sim:
-            print('current_coords:', dtype.GetPose(self.api))
-            self.current_coords = self.calibration_data['loading']
-        else:
+        if self.sim:
             self.current_coords = self.calibration_data['loading']
         self.get_plate_data()
         return
