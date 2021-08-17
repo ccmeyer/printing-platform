@@ -1120,9 +1120,9 @@ class Platform():
 
     def get_pressure(self):
         if not self.sim:
-            print_pressure = self.channel_pulse.get_pressure()
-            refuel_pressure = self.channel_refuel.get_pressure()
-        print("Current pressure: Pulse={}\tRefuel={}".format(pulse,refuel))
+            self.print_pressure = self.channel_pulse.get_pressure()
+            self.refuel_pressure = self.channel_refuel.get_pressure()
+        print("Current pressure: Pulse={}\tRefuel={}".format(self.pulse_pressure,self.refuel_pressure))
         return
 
     def pulse_on(self):
