@@ -658,9 +658,9 @@ class Platform():
         if check:
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
-            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'] + 30)
-            if not self.ask_yes_no(message="Is the tip 30mm above the target? (y/n)"):
-                self.calibration_data[location]['z'] += 30
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'] + 20)
+            if not self.ask_yes_no(message="Is the tip 20mm above the target? (y/n)"):
+                self.calibration_data[location]['z'] += 20
 
         if direct == False and height == 'exact':
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
@@ -695,7 +695,7 @@ class Platform():
         if verbose:
             print('Dobot moving...',end='')
         if check:
-            z += 30
+            z += 20
         if not self.sim:
             last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
             self.run_cmd()
