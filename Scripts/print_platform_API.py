@@ -214,7 +214,7 @@ class Platform():
 
     def get_current_key(self):
         while True:
-            if self.current_key and datetime.datetime.now().timestamp() - self.time_stamp < 0.1:
+            if self.current_key and datetime.datetime.now().timestamp() - self.time_stamp < 0.5:
                 if self.current_key not in [Key.shift,Key.shift_r,Key.enter]:
                     try:
                         output = self.current_key.char
@@ -859,7 +859,7 @@ class Platform():
             print('The pipet is currently not calibrated, please calibrate it')
             return
 
-        num_asps = round(((self.max_volume - self.current_volume) / self.vol_per_asp),0)
+        num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
         print(f'Filling tip from {self.current_volume}...{num_asps}')
         self.move_to_location(location='tube')
         self.print_droplets(self.frequency,0,self.refuel_width ,num_asps,aspiration=True)
@@ -869,7 +869,7 @@ class Platform():
         for index, line in arr.iterrows():
             if self.check_for_pause(): return
             if self.current_volume < self.min_volume:
-                num_asps = round(((self.max_volume - self.current_volume) / self.vol_per_asp),0)
+                num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
                 print(f'Refilling...{num_asps}')
                 self.move_to_location(location='tube')
                 self.print_droplets(self.frequency,0,self.refuel_width,num_asps,aspiration=True)
@@ -908,10 +908,10 @@ class Platform():
                 self.move_to_location(location='print')
             elif key == 'l':
                 self.move_to_location(location='loading')
-            elif key == '[':
-                self.move_to_location(location='tube')
-            elif key == ']':
-                self.move_to_location(location='tube',height='above')
+            # elif key == '[':
+            #     self.move_to_location(location='tube')
+            # elif key == ']':
+            #     self.move_to_location(location='tube',height='above')
             elif key == 'y':
                 self.change_print_position()
             elif key == 'h':
