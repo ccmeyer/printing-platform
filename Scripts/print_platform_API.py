@@ -565,25 +565,27 @@ class Platform():
         corrected, the new positions are stored in the plate metadata file.
         '''
         if not self.ask_yes_no(message="Change print position? (y/n)"): return
-        self.move_to_location(location='print')
+        self.move_to_location(location='print',check=True)
         self.dobot_manual_drive()
         coord_diffs = {'x':(self.current_coords['x'] - self.top_left['x']),'y':(self.current_coords['y'] - self.top_left['y']),'z':(self.current_coords['z'] - self.top_left['z'])}
         print(coord_diffs)
         self.top_left = self.current_coords
+        self.calibration_data['print'] = self.current_coords
+        self.write_printing_calibrations()
 
-        self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
+        self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'],check=True)
         self.dobot_manual_drive()
         coord_diffs = {'x':(self.current_coords['x'] - self.top_right['x']),'y':(self.current_coords['y'] - self.top_right['y']),'z':(self.current_coords['z'] - self.top_right['z'])}
         print(coord_diffs)
         self.top_right = self.current_coords
 
-        self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
+        self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'],check=True)
         self.dobot_manual_drive()
         coord_diffs = {'x':(self.current_coords['x'] - self.bottom_right['x']),'y':(self.current_coords['y'] - self.bottom_right['y']),'z':(self.current_coords['z'] - self.bottom_right['z'])}
         print(coord_diffs)
         self.bottom_right = self.current_coords
 
-        self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
+        self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'],check=True)
         self.dobot_manual_drive()
         coord_diffs = {'x':(self.current_coords['x'] - self.bottom_left['x']),'y':(self.current_coords['y'] - self.bottom_left['y']),'z':(self.current_coords['z'] - self.bottom_left['z'])}
         print(coord_diffs)
@@ -603,7 +605,7 @@ class Platform():
         if not location in self.calibration_data.keys():
             print('{} not present in calibration data')
             return
-        self.move_to_location(location=location)
+        self.move_to_location(location=location,check=True)
         self.dobot_manual_drive()
         self.calibration_data[location] = self.current_coords
         self.write_printing_calibrations()
@@ -635,7 +637,7 @@ class Platform():
             json.dump(self.calibration_data, outfile)
         print("Printing calibrations saved")
 
-    def move_to_location(self,location=False,height='exact',direct=False):
+    def move_to_location(self,location=False,height='exact',direct=False,check=False):
         print('Current',self.location)
         if not location:
             location = select_options(list(self.calibration_data.keys()))
@@ -652,17 +654,31 @@ class Platform():
         if location not in available_locations:
             print('{} not present in calibration data')
             return
+
+        if check:
+            self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'] + 30)
+            if not self.ask_yes_no(message="Is the tip 30mm above the target? (y/n)"):
+                self.calibration_data[location]['z'] += 30
+
         if direct == False and height == 'exact':
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'])
         elif direct == True and height == 'exact':
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'])
+
         elif direct == False and height == 'above':
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+        elif direct == False and height == 'above_side':
+            self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y']-30, self.height)
         elif direct == True and height == 'above':
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
+
         elif direct == False and height == 'close':
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
@@ -672,12 +688,14 @@ class Platform():
         self.location = location_name
         return
 
-    def move_dobot(self,x,y,z,verbose=True):
+    def move_dobot(self,x,y,z,verbose=True,check=False):
         '''
         Takes a set of XYZ coordinates and moves the Dobot to that location
         '''
         if verbose:
             print('Dobot moving...',end='')
+        if check:
+            z += 30
         if not self.sim:
             last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
             self.run_cmd()
@@ -1292,7 +1310,7 @@ class Platform():
         return
 
     def calibrate_pipet_aspiration(self):
-        self.move_to_location(location='tube',height='above')
+        self.move_to_location(location='tube',height='above_side')
         input('Tare the tube, place tube in holder, and press Enter ')
         self.move_to_location(location='tube')
         refuel_counter = 0
@@ -1310,7 +1328,7 @@ class Platform():
                     hold = False
                 else:
                     print("Didn't quit")
-        self.move_to_location(location='tube',height='above')
+        self.move_to_location(location='tube',height='above_side')
         self.current_volume = ask_for_number(message='Enter mg of liquid aspirated: ')
         self.vol_per_asp = self.current_volume / refuel_counter
         print('Volume aspirated per pulse:',self.vol_per_asp,'\n')
@@ -1331,7 +1349,7 @@ class Platform():
             for i in range(print_test_count):
                 self.pulse_test()
 
-            self.move_to_location(location='tube',height='above')
+            self.move_to_location(location='tube',height='above_side')
             dispensed = ask_for_number(message='\nEnter mg of liquid dispensed: ')
             self.current_disp_volume = dispensed / print_test_count
             self.current_volume -= dispensed
