@@ -1298,19 +1298,20 @@ class Platform():
                 print('Adding measurement')
                 x.append(self.pulse_pressure)
                 y.append(current_vol)
+                if len(x) == 1:
+                    if current_vol > target:
+                        current_print = self.pulse_pressure - 0.5
+                    else:
+                        current_print = self.pulse_pressure + 0.5
+                    print('--- Setting pressure to ',current_print)
+
+                else:
+                    [m,b] = np.polyfit(np.array(x),np.array(y),1)
+                    current_print = (target - b) / m
+                    print('Setting pressure to ',current_print)
             elif answer == 'no':
                 print('Skipping measurement')
-            if len(x) == 1:
-                if current_vol > target:
-                    current_print = self.pulse_pressure - 0.5
-                else:
-                    current_print = self.pulse_pressure + 0.5
-                print('--- Setting pressure to ',current_print)
 
-            else:
-                [m,b] = np.polyfit(np.array(x),np.array(y),1)
-                current_print = (target - b) / m
-                print('Setting pressure to ',current_print)
         return
 
     def calibrate_pipet_aspiration(self):
