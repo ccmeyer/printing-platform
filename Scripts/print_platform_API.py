@@ -180,6 +180,7 @@ class Platform():
         self.location = 'unknown'
         self.current_row = 0
         self.current_column = 0
+        time.sleep(0.5)
         self.read_defaults()
         return
 
@@ -1055,7 +1056,7 @@ class Platform():
             print('No droplets to print')
             return
         delay = (count/freq)
-        # self.get_pressure()
+        self.get_pressure()
         extra = self.ser.readall().decode()
         self.ser.write(SetParam_CtrlSeq(freq,pulse_width,refuel_width,count))
         time.sleep(0.2)
@@ -1081,7 +1082,7 @@ class Platform():
             self.print_droplets(freq,pulse_width,refuel_width,count)
             print('Completed the fix for the incorrect parameters')
             return
-        # self.get_pressure()
+        self.get_pressure()
         if self.tracking_volume:
             print('Volume tracking')
             if aspiration:
@@ -1142,8 +1143,8 @@ class Platform():
 
     def get_pressure(self):
         if not self.sim:
-            self.print_pressure = self.channel_pulse.get_pressure()
-            self.refuel_pressure = self.channel_refuel.get_pressure()
+            self.pulse_pressure = self.channel_pulse.get_pressure()[0]
+            self.refuel_pressure = self.channel_refuel.get_pressure()[0]
         print("Current pressure: Pulse={}\tRefuel={}".format(self.pulse_pressure,self.refuel_pressure))
         return
 
@@ -1247,7 +1248,7 @@ class Platform():
         self.test_print()
         self.move_to_location(location='tube',height='above')
 
-        current_vol =self.ask_for_number(message='Enter mg of liquid printed: ')
+        current_vol = ask_for_number(message='Enter mg of liquid printed: ')
         input('Place tube back in holder and press enter')
         return current_vol
 
