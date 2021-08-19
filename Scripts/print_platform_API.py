@@ -842,21 +842,8 @@ class Platform():
     def check_for_pause(self):
         if self.pause:
             print('Process has been paused')
-            if self.ask_yes_no(message="Quit print? (y/n)"):
-                print('Quitting\n')
-                self.pause = False
-                return True
-        self.pause = False
-        return False
-
-    def check_for_refill(self):
-        if self.pause:
-            print('Process has been paused')
-            if self.ask_yes_no(message="Refill chip? (y/n)"):
-                print('Refilling\n')
-                self.refill_chip()
-                self.pause = False
-                return True
+            self.pause = False
+            return True
         self.pause = False
         return False
 
@@ -888,8 +875,13 @@ class Platform():
                 droplets_printed = 0
             print('\nOn {} out of {}-droplets:{}'.format(index+1,len(arr),droplets_printed))
             time.sleep(0.1)
-            if self.check_for_refill():
-                droplets_printed = 0
+            if self.check_for_pause():
+                if self.ask_yes_no(message="Quit print? (y/n)"):
+                    print('Quitting\n')
+                    return
+                if self.ask_yes_no(message="Refill chip? (y/n)"):
+                    self.refill_chip()
+                    droplets_printed = 0
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets_current(line['Droplet'])
             droplets_printed += line['Droplet']
@@ -916,7 +908,10 @@ class Platform():
         self.move_to_location(location='print')
         arr = pd.read_csv(chosen_path)
         for index, line in arr.iterrows():
-            if self.check_for_pause(): return
+            if self.check_for_pause():
+                if self.ask_yes_no(message="Quit print? (y/n)"):
+                    print('Quitting\n')
+                    return
             if self.current_volume < self.min_volume:
                 num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
                 print(f'Refilling...{num_asps}')
@@ -957,10 +952,10 @@ class Platform():
                 self.move_to_location(location='print')
             elif key == 'l':
                 self.move_to_location(location='loading')
-            # elif key == '[':
-            #     self.move_to_location(location='tube')
-            # elif key == ']':
-            #     self.move_to_location(location='tube',height='above')
+            elif key == '[':
+                self.move_to_location(location='tube')
+            elif key == ']':
+                self.move_to_location(location='tube',height='above_side')
             elif key == 'y':
                 self.change_print_position()
             elif key == 'h':
