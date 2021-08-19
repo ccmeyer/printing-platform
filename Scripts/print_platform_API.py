@@ -653,7 +653,7 @@ class Platform():
             return
         available_locations = list(self.calibration_data.keys()) + ['_'.join(['above',k]) for k in self.calibration_data.keys()]
         if location not in available_locations:
-            print('{} not present in calibration data')
+            print(f'{location} not present in calibration data')
             return
 
         if check:
@@ -1143,9 +1143,12 @@ class Platform():
 
     def get_pressure(self):
         if not self.sim:
-            self.pulse_pressure = self.channel_pulse.get_pressure()[0]
-            self.refuel_pressure = self.channel_refuel.get_pressure()[0]
-        print("Current pressure: Pulse={}\tRefuel={}".format(self.pulse_pressure,self.refuel_pressure))
+            pulse = self.channel_pulse.get_pressure()[0]
+            refuel = self.channel_refuel.get_pressure()[0]
+        else:
+            pulse = self.pulse_pressure
+            refuel = self.refuel_pressure
+        print("Current pressure: Pulse={}\tRefuel={}".format(pulse,refuel))
         return
 
     def pulse_on(self):
