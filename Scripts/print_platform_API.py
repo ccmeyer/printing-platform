@@ -849,6 +849,24 @@ class Platform():
         self.pause = False
         return False
 
+    def check_for_refill(self):
+        if self.pause:
+            print('Process has been paused')
+            if self.ask_yes_no(message="Refill chip? (y/n)"):
+                print('Refilling\n')
+                self.refill_chip()
+                self.pause = False
+                return True
+        self.pause = False
+        return False
+
+    def refill_chip(self):
+        print('\nTime to refill the chip...')
+        self.move_to_location('loading')
+        self.load_gripper()
+        input('Press enter when ready to resume')
+        return
+
     def print_array(self):
 
         if not self.ask_yes_no(message="Print an array? (y/n)"):
@@ -863,12 +881,18 @@ class Platform():
 
         self.move_to_location(location='print')
         arr = pd.read_csv(chosen_path)
+        droplets_printed = 0
         for index, line in arr.iterrows():
-            print('\nOn {} out of {}'.format(index+1,len(arr)))
-            time.sleep(0.5)
-            if self.check_for_pause(): return
+            if droplets_printed > 2000:
+                self.refill_chip()
+                droplets_printed = 0
+            print('\nOn {} out of {}-droplets:{}'.format(index+1,len(arr),droplets_printed))
+            time.sleep(0.1)
+            if self.check_for_refill():
+                droplets_printed = 0
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets_current(line['Droplet'])
+            droplets_printed += line['Droplet']
         print('\nPrint array complete\n')
         return
 
