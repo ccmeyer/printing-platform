@@ -567,12 +567,13 @@ class Platform():
         '''
         if not self.ask_yes_no(message="Change print position? (y/n)"): return
         self.move_to_location(location='print',check=True)
+        self.move_dobot(self.top_left['x'], self.top_left['y'], self.top_left['z'],check=True)
         self.dobot_manual_drive()
         coord_diffs = {'x':(self.current_coords['x'] - self.top_left['x']),'y':(self.current_coords['y'] - self.top_left['y']),'z':(self.current_coords['z'] - self.top_left['z'])}
         print(coord_diffs)
         self.top_left = self.current_coords
-        self.calibration_data['print'] = self.current_coords
-        self.write_printing_calibrations()
+        # self.calibration_data['print'] = self.current_coords
+        # self.write_printing_calibrations()
 
         self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'],check=True)
         self.dobot_manual_drive()
@@ -696,7 +697,12 @@ class Platform():
         if verbose:
             print('Dobot moving...',end='')
         if check:
-            z += 20
+            print('checking height...')
+            self.move_dobot(self,x,y,z+20,verbose=True,check=False)
+            if not self.ask_yes_no(message='Is the tip 20mm away from target? (y/n)'):
+                return
+            else:
+                print('Moving to desired location...')
         if not self.sim:
             last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
             self.run_cmd()
