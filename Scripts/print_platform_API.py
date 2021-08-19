@@ -696,13 +696,13 @@ class Platform():
         '''
         if verbose:
             print('Dobot moving...',end='')
-        if check:
-            print('checking height...')
-            self.move_dobot(self,x,y,z+20,verbose=True,check=False)
-            if not self.ask_yes_no(message='Is the tip 20mm away from target? (y/n)'):
-                return
-            else:
-                print('Moving to desired location...')
+        # if check:
+        #     print('checking height...')
+        #     self.move_dobot(self,x,y,(z+20),verbose=True,check=False)
+        #     if not self.ask_yes_no(message='Is the tip 20mm away from target? (y/n)'):
+        #         return
+        #     else:
+        #         print('Moving to desired location...')
         if not self.sim:
             last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
             self.run_cmd()
