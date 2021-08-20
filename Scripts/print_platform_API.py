@@ -566,31 +566,31 @@ class Platform():
         corrected, the new positions are stored in the plate metadata file.
         '''
         if not self.ask_yes_no(message="Change print position? (y/n)"): return
-        self.move_to_location(location='print',check=True)
-        self.move_dobot(self.top_left['x'], self.top_left['y'], self.top_left['z'],check=True)
+        self.move_to_location(location='print')
+        self.move_dobot(self.top_left['x'], self.top_left['y'], self.top_left['z'])
         self.dobot_manual_drive()
-        coord_diffs = {'x':(self.current_coords['x'] - self.top_left['x']),'y':(self.current_coords['y'] - self.top_left['y']),'z':(self.current_coords['z'] - self.top_left['z'])}
-        print(coord_diffs)
+        # coord_diffs = {'x':(self.current_coords['x'] - self.top_left['x']),'y':(self.current_coords['y'] - self.top_left['y']),'z':(self.current_coords['z'] - self.top_left['z'])}
+        # print(coord_diffs)
         self.top_left = self.current_coords
         # self.calibration_data['print'] = self.current_coords
         # self.write_printing_calibrations()
 
-        self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'],check=True)
+        self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
         self.dobot_manual_drive()
-        coord_diffs = {'x':(self.current_coords['x'] - self.top_right['x']),'y':(self.current_coords['y'] - self.top_right['y']),'z':(self.current_coords['z'] - self.top_right['z'])}
-        print(coord_diffs)
+        # coord_diffs = {'x':(self.current_coords['x'] - self.top_right['x']),'y':(self.current_coords['y'] - self.top_right['y']),'z':(self.current_coords['z'] - self.top_right['z'])}
+        # print(coord_diffs)
         self.top_right = self.current_coords
 
-        self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'],check=True)
+        self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
         self.dobot_manual_drive()
-        coord_diffs = {'x':(self.current_coords['x'] - self.bottom_right['x']),'y':(self.current_coords['y'] - self.bottom_right['y']),'z':(self.current_coords['z'] - self.bottom_right['z'])}
-        print(coord_diffs)
+        # coord_diffs = {'x':(self.current_coords['x'] - self.bottom_right['x']),'y':(self.current_coords['y'] - self.bottom_right['y']),'z':(self.current_coords['z'] - self.bottom_right['z'])}
+        # print(coord_diffs)
         self.bottom_right = self.current_coords
 
-        self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'],check=True)
+        self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
         self.dobot_manual_drive()
-        coord_diffs = {'x':(self.current_coords['x'] - self.bottom_left['x']),'y':(self.current_coords['y'] - self.bottom_left['y']),'z':(self.current_coords['z'] - self.bottom_left['z'])}
-        print(coord_diffs)
+        # coord_diffs = {'x':(self.current_coords['x'] - self.bottom_left['x']),'y':(self.current_coords['y'] - self.bottom_left['y']),'z':(self.current_coords['z'] - self.bottom_left['z'])}
+        # print(coord_diffs)
         self.bottom_left = self.current_coords
 
         self.gen_trans_matrix()
@@ -916,6 +916,7 @@ class Platform():
                 num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
                 print(f'Refilling...{num_asps}')
                 self.move_to_location(location='tube')
+                input('\nPress enter when ready for aspiration')
                 self.print_droplets(self.frequency,0,self.refuel_width,num_asps,aspiration=True)
                 print('returning to print...')
                 self.move_to_location(location='print')
