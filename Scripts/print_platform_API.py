@@ -592,7 +592,7 @@ class Platform():
         # coord_diffs = {'x':(self.current_coords['x'] - self.bottom_left['x']),'y':(self.current_coords['y'] - self.bottom_left['y']),'z':(self.current_coords['z'] - self.bottom_left['z'])}
         # print(coord_diffs)
         self.bottom_left = self.current_coords
-
+        self.corners = np.array([get_coords(self.top_left)[:2],get_coords(self.top_right)[:2],get_coords(self.bottom_right)[:2],get_coords(self.bottom_left)[:2]], dtype = "float32")
         self.gen_trans_matrix()
 
         self.row_z_step = (self.bottom_left['z'] - self.top_left['z']) / (self.max_rows )
