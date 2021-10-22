@@ -297,7 +297,8 @@ class Platform():
         self.pulse_width = self.default_settings['dispenser_types'][mode]['pulse_width']
         self.refuel_pressure = self.default_settings['dispenser_types'][mode]['refuel_pressure']
         self.pulse_pressure = self.default_settings['dispenser_types'][mode]['pulse_pressure']
-        self.test_droplet_count = self.default_settings['dispenser_types'][mode]['test_droplet_count']
+        self.test_droplet_count_low = self.default_settings['dispenser_types'][mode]['test_droplet_count_low']
+        self.test_droplet_count_high = self.default_settings['dispenser_types'][mode]['test_droplet_count_high']
         self.frequency = self.default_settings['dispenser_types'][mode]['frequency']
         self.max_volume =  self.default_settings['dispenser_types'][mode]['max_volume']
         self.min_volume =  self.default_settings['dispenser_types'][mode]['min_volume']
@@ -573,7 +574,7 @@ class Platform():
         # print(coord_diffs)
         self.top_left = self.current_coords
         # self.calibration_data['print'] = self.current_coords
-        # self.write_printing_calibrations()
+        self.calibration_data['print'] = {'x':float(self.top_left['x']),'y':float(self.top_left['y']),'z':float( self.top_left['z'])}
 
         self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
         self.dobot_manual_drive()
@@ -629,12 +630,17 @@ class Platform():
         with open(self.plate_file_path, 'w') as outfile:
             json.dump(self.plate_data, outfile)
         print("Plate data saved")
+        self.write_printing_calibrations(ask=False)
 
-    def write_printing_calibrations(self):
+        return
+
+    def write_printing_calibrations(self,ask=True):
         '''
         Updates the print calibrations json file
         '''
-        if not self.ask_yes_no(message="Write print position to file? (y/n)"): return
+        if ask:
+            if not self.ask_yes_no(message="Write print position to file? (y/n)"): return
+
         with open(self.calibration_file_path, 'w') as outfile:
             json.dump(self.calibration_data, outfile)
         print("Printing calibrations saved")
@@ -985,9 +991,9 @@ class Platform():
             elif key == 'c':
                 self.pulse_test()
             elif key == 'z':
-                self.refuel_test(count=15)
+                self.refuel_test(high=True)
             elif key == 'v':
-                self.pulse_test(count=15)
+                self.pulse_test(high=True)
             elif key == 'C':
                 if self.mode == 'p1000':
                     self.calibrate_pipet()
@@ -1128,26 +1134,32 @@ class Platform():
         print('print complete')
         return
 
-    def refuel_test(self,count=0):
+    def refuel_test(self,high=False,count=0):
         '''
         Defined printing protocol used in calibration
         '''
         print('Refuel test')
-        if count == 0:
-            self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count)
+        if high:
+            self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count_high)
         else:
-            self.print_droplets(self.frequency,0,self.refuel_width,count)
+            if count == 0:
+                self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count_low)
+            else:
+                self.print_droplets(self.frequency,0,self.refuel_width,count)
         return
 
-    def pulse_test(self,count=0):
+    def pulse_test(self,high=False,count=0):
         '''
         Defined printing protocol used in calibration
         '''
         print('Pulse test')
-        if count == 0:
-            self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count)
+        if high:
+            self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count_high)
         else:
-            self.print_droplets(self.frequency,self.pulse_width,0,count)
+            if count == 0:
+                self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count_low)
+            else:
+                self.print_droplets(self.frequency,self.pulse_width,0,count)
         return
 
     def close_ard(self):
