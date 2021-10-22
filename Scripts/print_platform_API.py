@@ -803,7 +803,7 @@ class Platform():
         y = self.current_coords['y']
         z = self.current_coords['z']
         possible_steps = [0.1,0.5,1,5,10,20]
-        step_num = len(possible_steps)*10
+        step_num = (len(possible_steps)*10) + 1
         step = possible_steps[abs(step_num) % len(possible_steps)]
         while True:
             key = self.get_current_key()
@@ -984,11 +984,15 @@ class Platform():
                 self.refuel_test()
             elif key == 'c':
                 self.pulse_test()
+            elif key == 'z':
+                self.refuel_test(count=15)
+            elif key == 'v':
+                self.pulse_test(count=15)
             elif key == 'C':
-                self.calibrate_pipet()
-            elif key == 'b':
-                # self.check_pressures()
-                self.calibrate_chip()
+                if self.mode == 'p1000':
+                    self.calibrate_pipet()
+                elif self.mode == 'droplet':
+                    self.calibrate_chip()
             elif key == 'B':
                 # self.get_pressure()
                 self.resistance_testing()
@@ -997,9 +1001,10 @@ class Platform():
             elif key == 'r':
                 self.reset_dobot_position()
             elif key == 'P':
-                self.print_array()
-            elif key == 'V':
-                self.print_large_volumes()
+                if self.mode == 'p1000':
+                    self.print_large_volumes()
+                elif self.mode == 'droplet':
+                    self.print_array()
             elif key == 'n':
                 self.dobot_manual_drive()
             elif key == '!':
@@ -1010,12 +1015,12 @@ class Platform():
             #     self.pulse_open()
             # elif c == '.':
             #     self.close_valves()
-            elif key == ';':
-                self.pulse_width += 500
-                print('Current pulse width: ',self.pulse_width)
-            elif key == '.':
-                self.pulse_width -= 500
-                print('Current pulse width: ',self.pulse_width)
+            # elif key == ';':
+            #     self.pulse_width += 500
+            #     print('Current pulse width: ',self.pulse_width)
+            # elif key == '.':
+            #     self.pulse_width -= 500
+            #     print('Current pulse width: ',self.pulse_width)
             elif key == '1':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
             elif key == '2':
@@ -1033,6 +1038,10 @@ class Platform():
                 self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
             elif key == '9':
                 self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+            elif key == Key.esc:
+                print('\nPaused keyboard tracking. Press Enter when finished\n')
+                input()
+                print("Returning to tracking\n")
             elif key == "q":
                 if self.ask_yes_no(message='Quit (y/n)'):
                     print('Quitting...')
@@ -1119,20 +1128,26 @@ class Platform():
         print('print complete')
         return
 
-    def refuel_test(self):
+    def refuel_test(self,count=0):
         '''
         Defined printing protocol used in calibration
         '''
         print('Refuel test')
-        self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count)
+        if count == 0:
+            self.print_droplets(self.frequency,0,self.refuel_width,self.test_droplet_count)
+        else:
+            self.print_droplets(self.frequency,0,self.refuel_width,count)
         return
 
-    def pulse_test(self):
+    def pulse_test(self,count=0):
         '''
         Defined printing protocol used in calibration
         '''
         print('Pulse test')
-        self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count)
+        if count == 0:
+            self.print_droplets(self.frequency,self.pulse_width,0,self.test_droplet_count)
+        else:
+            self.print_droplets(self.frequency,self.pulse_width,0,count)
         return
 
     def close_ard(self):
@@ -1156,6 +1171,7 @@ class Platform():
         print('Pressure regulator is connected')
 
         self.set_pressure(self.pulse_pressure,self.refuel_pressure)
+        self.pressure_on()
         return
 
     def set_pressure(self,pulse,refuel,runtime=6000):
@@ -1300,14 +1316,8 @@ class Platform():
     def calibrate_print(self,target = 6):
         x = []
         y = []
-
-        if self.ask_yes_no(message='Printing WCE? (y/n)'):
-            print('printing wce...')
-            current_print = 3.5
-            charge_refuel = 1.2
-        else:
-            current_print = 2
-            charge_refuel = 0.6
+        current_print = 2
+        charge_refuel = 0.6
         tolerance = 0.05
 
         while True:
@@ -1325,12 +1335,8 @@ class Platform():
                 x.append(self.pulse_pressure)
                 y.append(current_vol)
                 if len(x) == 1:
-                    if current_vol > target:
-                        current_print = self.pulse_pressure - 0.5
-                    else:
-                        current_print = self.pulse_pressure + 0.5
+                    current_print = (target/current_vol) * self.pulse_pressure
                     print('--- Setting pressure to ',current_print)
-
                 else:
                     [m,b] = np.polyfit(np.array(x),np.array(y),1)
                     current_print = (target - b) / m
