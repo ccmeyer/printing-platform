@@ -13,6 +13,7 @@ import glob
 import os
 from pynput import keyboard
 from pynput.keyboard import Key
+from pyautogui import press
 import datetime
 
 import tkinter as tk
@@ -221,6 +222,8 @@ class Platform():
                         output = self.current_key.char
                     except:
                         output = self.current_key
+                    press('esc')
+                    # input('Check key:')
                     self.current_key = False
                     return output
             time.sleep(0.01)
@@ -235,6 +238,8 @@ class Platform():
                 return True
             elif key == 'n':
                 return False
+            elif key == Key.esc:
+                continue
             else:
                 print(f'{key} is not a valid input')
 
@@ -253,6 +258,8 @@ class Platform():
                 return 'no'
             elif key == 'q':
                 return 'quit'
+            elif key == Key.esc:
+                continue
             else:
                 print(f'{key} is not a valid input')
 
@@ -570,28 +577,23 @@ class Platform():
         self.move_to_location(location='print')
         self.move_dobot(self.top_left['x'], self.top_left['y'], self.top_left['z'])
         self.dobot_manual_drive()
-        # coord_diffs = {'x':(self.current_coords['x'] - self.top_left['x']),'y':(self.current_coords['y'] - self.top_left['y']),'z':(self.current_coords['z'] - self.top_left['z'])}
-        # print(coord_diffs)
+
         self.top_left = self.current_coords
-        # self.calibration_data['print'] = self.current_coords
         self.calibration_data['print'] = {'x':float(self.top_left['x']),'y':float(self.top_left['y']),'z':float( self.top_left['z'])}
 
         self.move_dobot(self.top_right['x'], self.top_right['y'], self.top_right['z'])
         self.dobot_manual_drive()
-        # coord_diffs = {'x':(self.current_coords['x'] - self.top_right['x']),'y':(self.current_coords['y'] - self.top_right['y']),'z':(self.current_coords['z'] - self.top_right['z'])}
-        # print(coord_diffs)
+
         self.top_right = self.current_coords
 
         self.move_dobot(self.bottom_right['x'], self.bottom_right['y'], self.bottom_right['z'])
         self.dobot_manual_drive()
-        # coord_diffs = {'x':(self.current_coords['x'] - self.bottom_right['x']),'y':(self.current_coords['y'] - self.bottom_right['y']),'z':(self.current_coords['z'] - self.bottom_right['z'])}
-        # print(coord_diffs)
+
         self.bottom_right = self.current_coords
 
         self.move_dobot(self.bottom_left['x'], self.bottom_left['y'], self.bottom_left['z'])
         self.dobot_manual_drive()
-        # coord_diffs = {'x':(self.current_coords['x'] - self.bottom_left['x']),'y':(self.current_coords['y'] - self.bottom_left['y']),'z':(self.current_coords['z'] - self.bottom_left['z'])}
-        # print(coord_diffs)
+
         self.bottom_left = self.current_coords
         self.corners = np.array([get_coords(self.top_left)[:2],get_coords(self.top_right)[:2],get_coords(self.bottom_right)[:2],get_coords(self.bottom_left)[:2]], dtype = "float32")
         self.gen_trans_matrix()
@@ -840,6 +842,8 @@ class Platform():
                     return
                 else:
                     print("Didn't quit")
+            elif key == Key.esc:
+                continue
             else:
                 print(f'{key} is not a valid input')
             self.move_dobot(x,y,z)
@@ -1004,8 +1008,8 @@ class Platform():
                 self.resistance_testing()
             # elif c == 'r':
             #     self.record_flow()
-            elif key == 'r':
-                self.reset_dobot_position()
+            # elif key == 'r':
+            #     self.reset_dobot_position()
             elif key == 'P':
                 if self.mode == 'p1000':
                     self.print_large_volumes()
@@ -1044,10 +1048,12 @@ class Platform():
                 self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
             elif key == '9':
                 self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-            elif key == Key.esc:
+            elif key == "S":
                 print('\nPaused keyboard tracking. Press Enter when finished\n')
                 input()
                 print("Returning to tracking\n")
+            elif key == Key.esc:
+                continue
             elif key == "q":
                 if self.ask_yes_no(message='Quit (y/n)'):
                     print('Quitting...')
@@ -1275,7 +1281,8 @@ class Platform():
                 self.move_to_location(location='tube')
             elif c == ']':
                 self.move_to_location(location='tube',height='above')
-
+            elif key == Key.esc:
+                continue
             elif c == "q":
                 if self.ask_yes_no(message='Finished charging? (y/n)'):
                     print('Quitting...')
@@ -1372,6 +1379,8 @@ class Platform():
             if key == "x":
                 refuel_counter += 1
                 self.refuel_test()
+            elif key == Key.esc:
+                continue
             elif key == "q":
                 if self.ask_yes_no(message='Pipet tip full? (y/n)'):
                     hold = False
