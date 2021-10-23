@@ -15,6 +15,7 @@ from pynput import keyboard
 from pynput.keyboard import Key
 from pyautogui import press
 import datetime
+import shutil
 
 import tkinter as tk
 from tkinter import ttk
@@ -190,8 +191,6 @@ class Platform():
         self.monitor.info_1.set(str(self.current_row))
         self.monitor.info_2.set(str(self.current_column))
         self.monitor.info_3.set(str(self.keyboard_config))
-
-
     def on_press(self,key):
         self.shift = False
         self.current_key = key
@@ -223,7 +222,6 @@ class Platform():
                     except:
                         output = self.current_key
                     press('esc')
-                    # input('Check key:')
                     self.current_key = False
                     return output
             time.sleep(0.01)
@@ -470,18 +468,6 @@ class Platform():
         self.location = 'home'
         return
 
-    def reset_dobot_position(self):
-        '''
-        Moves the Dobot to a location where its range is limited to avoid
-        the arm making contact during homing
-        '''
-        if not self.ask_yes_no(message="Reset Dobot position? (y/n)"):
-            return
-        self.move_dobot(self.loading_position['x'],self.loading_position['y'],self.loading_position['z'])
-        self.move_dobot(self.home_position['x'],self.home_position['y'],self.home_position['z'])
-        self.location = 'home'
-        return
-
     def gen_trans_matrix(self):
         '''
         Performs a 4-point transformation of the coordinate plane using the
@@ -564,7 +550,6 @@ class Platform():
 
     def modify_coords(self,coords_1,coords_2):
         coord_diffs = {'x':(coords_1['x'] - coords_2['x']),'y':(coords_1s['y'] - coords_2['y']),'z':(coords_1s['z'] - coords_2['z'])}
-
 
     def change_print_position(self):
         '''
@@ -704,13 +689,6 @@ class Platform():
         '''
         if verbose:
             print('Dobot moving...',end='')
-        # if check:
-        #     print('checking height...')
-        #     self.move_dobot(self,x,y,(z+20),verbose=True,check=False)
-        #     if not self.ask_yes_no(message='Is the tip 20mm away from target? (y/n)'):
-        #         return
-        #     else:
-        #         print('Moving to desired location...')
         if not self.sim:
             last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
             self.run_cmd()
@@ -896,8 +874,14 @@ class Platform():
             self.print_droplets_current(line['Droplet'])
             droplets_printed += line['Droplet']
         print('\nPrint array complete\n')
+        dir_path = r'{}\completed_arrays\\'.format(experiment_folder)
+        print('Dir:',dir_path)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        new_path = '{}\{}'.format(dir_path,str(chosen_path).split('\\')[-1])
+        print(new_path)
+        shutil.move(chosen_path,new_path)
         return
-
 
     def print_large_volumes(self):
         if not self.ask_yes_no(message="Print a large volume array? (y/n)"):
@@ -1316,7 +1300,6 @@ class Platform():
         input('Place tube back in holder and press enter')
         return current_vol
 
-
     def calibrate_chip(self,target = 6):
         if not self.ask_yes_no(message='Calibrate chip? (y/n)'):
             print('Quitting...')
@@ -1330,7 +1313,6 @@ class Platform():
         print('\nCompleted calibration')
         section_break()
         return
-
 
     def calibrate_print(self,target = 6):
         x = []
@@ -1452,7 +1434,6 @@ class Platform():
         self.calibrate_pipet_aspiration()
         self.calibrate_pipet_dispense(target=target)
         return
-
 
     def check_pressures(self):
         self.move_to_location(location='tube')
