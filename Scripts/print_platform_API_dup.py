@@ -584,12 +584,14 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             return
         delay = (count/freq)
         self.get_pressure()
-        extra = read_ard()
+        extra = self.read_ard()
+
         self.print_command(freq,pulse_width,refuel_width,count)
+
         time.sleep(delay)
         current = self.read_ard()
         i = 0
-        while current != 'C':
+        while 'C' not in current:
             current = self.read_ard()
             time.sleep(0.05)
             i += 1
