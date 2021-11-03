@@ -387,14 +387,34 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets_current(line['Droplet'])
             droplets_printed += line['Droplet']
+
+            if 'partial' in chosen_path:
+                partial_path = ''.join([chosen_path[:-4],'.csv'])
+            else:
+                partial_path = ''.join([chosen_path[:-4],'-partial','.csv'])
+
+            print(partial_path)
+            arr.iloc[index:].to_csv(partial_path)
+
         print('\nPrint array complete\n')
         dir_path = r'{}\completed_arrays\\'.format(experiment_folder)
         print('Dir:',dir_path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-        new_path = '{}\{}'.format(dir_path,str(chosen_path).split('\\')[-1])
-        print(new_path)
-        shutil.move(chosen_path,new_path)
+        print('Dir:',dir_path)
+
+        if 'partial' in chosen_path:
+            original_path = ''.join(partial_path.split('-partial'))
+            print(original_path)
+            new_path = '{}\{}'.format(dir_path,str(original_path).split('\\')[-1])
+            shutil.move(original_path,new_path)
+        else:
+            new_path = '{}\{}'.format(dir_path,str(chosen_path).split('\\')[-1])
+            print(new_path)
+            shutil.move(chosen_path,new_path)
+            
+        os.remove(partial_path)
+        self.move_to_location(location='loading')
         return
 
     def print_large_volumes(self):
@@ -432,7 +452,17 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             print('\nOn {} out of {} with {}'.format(index+1,len(arr),self.current_volume))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet'])
+
+            if 'partial' in chosen_path:
+                new_path = ''.join([chosen_path[:-4],'.csv'])
+            else:
+                new_path = ''.join([chosen_path[:-4],'-partial','.csv'])
+            print(new_path)
+            arr.iloc[index:].to_csv(new_path)
+
         print('\nPrint array complete\n')
+        os.remove(new_path)
+        self.move_to_location(location='loading')
         return
 
     def drive_platform(self):
