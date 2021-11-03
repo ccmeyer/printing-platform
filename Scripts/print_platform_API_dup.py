@@ -257,7 +257,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
 
     def change_position(self,location=False):
         if not location:
-            location = select_options(list(self.calibration_data.keys()))
+            location,quit = select_options(list(self.calibration_data.keys()))
+            if quit: return
         if not location in self.calibration_data.keys():
             print('{} not present in calibration data')
             return
@@ -270,7 +271,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     def move_to_location(self,location=False,height='exact',direct=False,check=False):
         print('Current',self.location)
         if not location:
-            location = select_options(list(self.calibration_data.keys()))
+            location,quit = select_options(list(self.calibration_data.keys()))
+            if quit: return
         if height != 'exact':
             location_name = '_'.join([height,location])
         else:
@@ -359,11 +361,12 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             return
 
         all_exp = self.get_all_paths('Print_arrays/*/',base=True)
-        experiment_folder = select_options(all_exp,message='Select one of the experiments:',trim=True)
-
+        experiment_folder,quit = select_options(all_exp,message='Select one of the experiments:',trim=True)
+        if quit: return
         all_arrays = self.get_all_paths('{}/*.csv'.format(experiment_folder))
         all_arrays = [p for p in all_arrays if 'key' not in p]
-        chosen_path = select_options(all_arrays,message='Select one of the arrays:',trim=True)
+        chosen_path,quit = select_options(all_arrays,message='Select one of the arrays:',trim=True)
+        if quit: return
 
         self.move_to_location(location='print')
         arr = pd.read_csv(chosen_path)
@@ -399,7 +402,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             return
 
         all_arr = self.get_all_paths('Print_arrays/large_volume_arrays/*.csv',base=True)
-        chosen_path = select_options(all_arr, message='Select one of the following arrays:',trim=True)
+        chosen_path, quit = select_options(all_arr, message='Select one of the following arrays:',trim=True)
+        if quit: return
 
         if not self.calibrated:
             print('The pipet is currently not calibrated, please calibrate it')
