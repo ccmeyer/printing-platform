@@ -1,5 +1,6 @@
 from Precigenome.PGMFC import PGMFC
 import time
+import numpy as np
 from utils import *
 
 
@@ -48,7 +49,7 @@ class Regulator:
             print("Current pressure: Pulse={}\tRefuel={}".format(round(pulse,2),round(refuel,2)))
         return
 
-    def check_pressures(self,tolerance=0.1,verbose=False):
+    def compare_pressures(self,tolerance=0.1,verbose=False):
         if self.sim:
             print('No pressure check in Sim')
             return
@@ -57,13 +58,13 @@ class Regulator:
         refuel_diff = np.abs((self.real_refuel - self.refuel_pressure) / self.refuel_pressure)
         pulse_diff = np.abs((self.real_pulse - self.pulse_pressure) / self.pulse_pressure)
 
-        if refuel_diff =< 0.1 and pulse_diff =< 0.1:
+        if refuel_diff <= 0.1 and pulse_diff <= 0.1:
             print(f'Pressures within tolerance {tolerance}')
             self.correct_pressure = True
         else:
             self.correct_pressure = False
             if verbose:
-                print(f'Pressures are incorrect: Refuel: {refuel_diff} Print: {pulse_diff}')
+                print(f'Pressures are incorrect: \nRefuel: {self.real_refuel}  {self.refuel_pressure}: {refuel_diff} \nPrint: {self.real_pulse}  {self.pulse_pressure}: {pulse_diff}')
         return
 
     def pulse_on(self):

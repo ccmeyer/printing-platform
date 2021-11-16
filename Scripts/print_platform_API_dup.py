@@ -385,7 +385,9 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                     self.refill_chip()
                     droplets_printed = 0
             self.move_to_well(line['Row'],line['Column'])
-            self.print_droplets_current(line['Droplet'])
+            if not self.print_droplets_current(line['Droplet']):
+                print('Quitting print array')
+                return
             droplets_printed += line['Droplet']
 
             if 'partial' in chosen_path:
@@ -595,8 +597,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
 
 
     def print_droplets_current(self,count):
-        self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,count)
-        return
+        return self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,count)
 
     def print_droplets(self,freq,pulse_width,refuel_width,count,aspiration=False):
         '''
@@ -618,7 +619,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             return
 
         ## Pressure check
-        self.check_pressures(verbose=True)
+        self.compare_pressures(verbose=True)
 
         i = 0
         while self.correct_pressure == False:
@@ -627,11 +628,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 print('Pressure is incorrect')
                 verbose = True
             time.sleep(0.2)
-            self.check_pressures(verbose=verbose)
+            self.compare_pressures(verbose=verbose)
             if self.check_for_pause():
                 if self.ask_yes_no(message="Quit print? (y/n)"):
                     print('Quitting\n')
-                    return
+                    return False
                 if self.ask_yes_no(message="Print Anyway? (y/n)"):
                     print('Continuing with print...\n')
                     self.correct_pressure = True
@@ -663,7 +664,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             print('\n---Incorrect parameters, repeating print---\n')
             self.print_droplets(freq,pulse_width,refuel_width,count)
             print('Completed the fix for the incorrect parameters')
-            return
+            return True
 
         self.update_pressure(verbose=True)
         if self.tracking_volume:
@@ -674,7 +675,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 self.current_volume -= (self.vol_per_disp * count)
             print('Current volume: ',self.current_volume)
         print('print complete')
-        return
+        return True
 
     def refuel_test(self,high=False,count=0):
         '''
