@@ -448,13 +448,17 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 print(f'Refilling...{num_asps}')
                 self.move_to_location(location='tube')
                 input('\nPress enter when ready for aspiration')
-                self.print_droplets(self.frequency,0,self.refuel_width,num_asps,aspiration=True)
+                if not self.print_droplets(self.frequency,0,self.refuel_width,num_asps,aspiration=True):
+                    print('Quitting print array')
+                    return
                 print('returning to print...')
                 self.move_to_location(location='print')
             print('\nOn {} out of {} with {}'.format(index+1,len(arr),self.current_volume))
             self.move_to_well(line['Row'],line['Column'])
             self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet'])
-
+            if not self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet']):
+                print('Quitting print array')
+                return
             if 'partial' in chosen_path:
                 new_path = ''.join([chosen_path[:-4],'.csv'])
             else:
@@ -651,7 +655,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             current = self.read_ard()
             time.sleep(0.05)
             i += 1
-            if i > 10:
+            if i > 20:
                 print('\n---Missed the signal, repeating print---\n')
                 self.print_droplets(freq,pulse_width,refuel_width,count)
                 print('Completed the fix for the missed signal')
