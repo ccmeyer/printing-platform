@@ -35,14 +35,35 @@ class Regulator:
         print("Setting pressure: Pulse={}\tRefuel={}".format(pulse,refuel))
         return
 
-    def get_pressure(self):
+    def update_pressure(self,verbose=True):
         if not self.sim:
             pulse = self.channel_pulse.get_pressure()[0]
             refuel = self.channel_refuel.get_pressure()[0]
+            self.real_pulse =  pulse
+            self.real_refuel = refuel
         else:
             pulse = self.pulse_pressure
             refuel = self.refuel_pressure
-        print("Current pressure: Pulse={}\tRefuel={}".format(pulse,refuel))
+        if verbose:
+            print("Current pressure: Pulse={}\tRefuel={}".format(round(pulse,2),round(refuel,2)))
+        return
+
+    def check_pressures(self,tolerance=0.1,verbose=False):
+        if self.sim:
+            print('No pressure check in Sim')
+            return
+
+        self.update_pressure(verbose=verbose)
+        refuel_diff = np.abs((self.real_refuel - self.refuel_pressure) / self.refuel_pressure)
+        pulse_diff = np.abs((self.real_pulse - self.pulse_pressure) / self.pulse_pressure)
+
+        if refuel_diff =< 0.1 and pulse_diff =< 0.1:
+            print(f'Pressures within tolerance {tolerance}')
+            self.correct_pressure = True
+        else:
+            self.correct_pressure = False
+            if verbose:
+                print(f'Pressures are incorrect: Refuel: {refuel_diff} Print: {pulse_diff}')
         return
 
     def pulse_on(self):

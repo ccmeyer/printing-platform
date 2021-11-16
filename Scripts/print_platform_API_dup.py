@@ -394,7 +394,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 partial_path = ''.join([chosen_path[:-4],'-partial','.csv'])
 
             print(partial_path)
-            arr.iloc[index:].to_csv(partial_path)
+            arr.iloc[index+1:].to_csv(partial_path)
 
         print('\nPrint array complete\n')
         dir_path = r'{}\completed_arrays\\'.format(experiment_folder)
@@ -412,7 +412,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             new_path = '{}\{}'.format(dir_path,str(chosen_path).split('\\')[-1])
             print(new_path)
             shutil.move(chosen_path,new_path)
-            
+
         os.remove(partial_path)
         self.move_to_location(location='loading')
         return
@@ -616,8 +616,29 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         if count == 0:
             print('No droplets to print')
             return
+
+        ## Pressure check
+        self.check_pressures(verbose=True)
+
+        i = 0
+        while self.correct_pressure == False:
+            verbose = False
+            if i % 10 == 0:
+                print('Pressure is incorrect')
+                verbose = True
+            time.sleep(0.2)
+            self.check_pressures(verbose=verbose)
+            if self.check_for_pause():
+                if self.ask_yes_no(message="Quit print? (y/n)"):
+                    print('Quitting\n')
+                    return
+                if self.ask_yes_no(message="Print Anyway? (y/n)"):
+                    print('Continuing with print...\n')
+                    self.correct_pressure = True
+            print('.',end='')
+            i += 1
+
         delay = (count/freq)
-        self.get_pressure()
         extra = self.read_ard()
 
         self.print_command(freq,pulse_width,refuel_width,count)
@@ -637,12 +658,14 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         print(' - Count: ',i)
         time.sleep(0.1)
         after = self.read_ard()
+
         if 'N' in after or 'F' in after:
             print('\n---Incorrect parameters, repeating print---\n')
             self.print_droplets(freq,pulse_width,refuel_width,count)
             print('Completed the fix for the incorrect parameters')
             return
-        self.get_pressure()
+
+        self.update_pressure(verbose=True)
         if self.tracking_volume:
             print('Volume tracking')
             if aspiration:
