@@ -325,8 +325,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         Moves the Dobot to a defined well while checking that the well is within
         the bounds of the plate
         '''
-        if self.location != 'print':
-            self.move_to_location(location='print')
+        if self.location not in ['print','pause']:
+            self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
+            self.move_dobot(self.calibration_data['pause']['x'],self.calibration_data['pause']['y'], self.height)
+            self.move_dobot(self.calibration_data['pause']['x'],self.calibration_data['pause']['y'], self.calibration_data['pause']['z'])
+            self.location = 'print'
 
         if row <= self.max_rows and column <= self.max_columns and row >= 0 and column >= 0:
             target_coords = self.get_well_coords(row,column)
@@ -368,7 +371,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         chosen_path,quit = select_options(all_arrays,message='Select one of the arrays:',trim=True)
         if quit: return
 
-        self.move_to_location(location='print')
+        self.move_to_location(location='pause')
         arr = pd.read_csv(chosen_path)
         droplets_printed = 0
         for index, line in arr.iterrows():
@@ -416,7 +419,9 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             shutil.move(chosen_path,new_path)
 
         os.remove(partial_path)
+        self.move_to_location(location='pause')
         self.move_to_location(location='loading')
+
         return
 
     def print_large_volumes(self):
