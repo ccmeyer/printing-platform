@@ -455,7 +455,6 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 self.move_to_location(location='print')
             print('\nOn {} out of {} with {}'.format(index+1,len(arr),self.current_volume))
             self.move_to_well(line['Row'],line['Column'])
-            self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet'])
             if not self.print_droplets(self.frequency,self.pulse_width,0,line['Droplet']):
                 print('Quitting print array')
                 return
