@@ -432,10 +432,6 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         chosen_path, quit = select_options(all_arr, message='Select one of the following arrays:',trim=True)
         if quit: return
 
-        if not self.calibrated:
-            print('The pipet is currently not calibrated, please calibrate it')
-            return
-
         num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
         print(f'Filling tip from {self.current_volume}...{num_asps}')
         self.move_to_location(location='tube')
