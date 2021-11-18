@@ -317,7 +317,10 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'] + 30)
         elif direct == True and height == 'close':
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.calibration_data[location]['z'] + 30)
-        self.location = location_name
+        if location_name == 'pause':
+            self.location = 'print'
+        else:
+            self.location = location_name
         return
 
     def move_to_well(self,row,column):
@@ -419,7 +422,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             shutil.move(chosen_path,new_path)
 
         os.remove(partial_path)
-        self.move_to_location(location='pause')
+        self.move_to_location(location='pause',direct=True)
         self.move_to_location(location='loading')
 
         return
