@@ -1,7 +1,10 @@
 # from Precigenome.PGMFC import PGMFC
 
 import Robot, Arduino, Regulator, Monitor
+import Robot, Arduino, Regulator, Monitor, ParallelProcess
 from utils import *
+from multiprocessing import Process, Queue
+
 
 import time
 import sys
@@ -34,6 +37,14 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
         # self.sim = False
         self.monitor = Monitor.Monitor()
+
+        self.queue = Queue()
+        self.storage = ParallelProcess.QueueStorage()
+        self.queue.put(self.storage)
+
+        self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage])
+        self.level_tracker.start()
+
         self.keyboard_config = 'empty'
         self.location = 'unknown'
         self.current_row = 0
@@ -48,10 +59,13 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.monitor.info_2.set(str(self.current_column))
         self.monitor.info_3.set(str(self.keyboard_config))
         while True:
+            self.storage = ParallelProcess.get_recent(self.queue,self.storage)
             self.monitor.info_0.set(str(self.mode))
             self.monitor.info_1.set(str(self.current_row))
             self.monitor.info_2.set(str(self.current_column))
             self.monitor.info_3.set(str(self.keyboard_config))
+            self.monitor.info_4.set(str(self.storage.level))
+            time.sleep(0.05)
         return
 
     def on_press(self,key):
@@ -225,6 +239,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.close_ard()
             self.pressure_off()
             self.close_reg()
+        self.level_tracker.terminate()
         self.monitor.end_monitor()
         print('All components are disconnected')
         section_break()

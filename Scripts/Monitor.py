@@ -64,6 +64,16 @@ class Monitor(threading.Thread):
         self.i_3 = ttk.Label(self.root, textvariable=self.info_3)
         self.i_3.grid(column=1, row=3, sticky=tk.W, padx=5, pady=5)
 
+        self.label_4 = tk.StringVar()
+        self.label_4.set('Current Level')
+        self.l_4 = ttk.Label(self.root, textvariable=self.label_4)
+        self.l_4.grid(column=0, row=4, sticky=tk.W, padx=5, pady=5)
+
+        self.info_4 = tk.StringVar()
+        self.info_4.set('---')
+        self.i_4 = ttk.Label(self.root, textvariable=self.info_4)
+        self.i_4.grid(column=1, row=4, sticky=tk.W, padx=5, pady=5)
+
         self.root.mainloop()
 
 
