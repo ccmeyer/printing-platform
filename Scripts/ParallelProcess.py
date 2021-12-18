@@ -355,11 +355,11 @@ def balance_tracker(queue, storage):
         ret, frame = vid.read()
 
         cv.imshow('frame', frame)
-        # try:
-        mass = extract_all_numbers(frame,show=True)
-        storage.mass = mass
-        # except:
-        #     storage.mass = 'unknown'
+        try:
+            mass = extract_all_numbers(frame,show=True)
+            storage.mass = mass
+        except:
+            storage.mass = 'unknown'
         queue.put(storage)
         time.sleep(0.01)
 
