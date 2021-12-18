@@ -66,5 +66,7 @@ class Monitor(threading.Thread):
 
         self.root.mainloop()
 
+
     def end_monitor(self):
         print('Close the monitor...')
+        self.root.quit()

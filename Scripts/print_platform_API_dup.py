@@ -18,6 +18,9 @@ from pyautogui import press
 import datetime
 import shutil
 
+from threading import Thread
+from time import sleep
+
 
 class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     '''
@@ -44,6 +47,12 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.monitor.info_1.set(str(self.current_row))
         self.monitor.info_2.set(str(self.current_column))
         self.monitor.info_3.set(str(self.keyboard_config))
+        while True:
+            self.monitor.info_0.set(str(self.mode))
+            self.monitor.info_1.set(str(self.current_row))
+            self.monitor.info_2.set(str(self.current_column))
+            self.monitor.info_3.set(str(self.keyboard_config))
+        return
 
     def on_press(self,key):
         self.shift = False
@@ -165,7 +174,10 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.calibrated = False
         self.tracking_volume = False
         self.mode = mode
-        self.update_monitor()
+
+        self.update_thread = Thread(target = self.update_monitor,args=[])
+        self.update_thread.daemon = True
+        self.update_thread.start()
         self.get_dobot_calibrations()
         return
 
@@ -213,6 +225,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.close_ard()
             self.pressure_off()
             self.close_reg()
+        self.monitor.end_monitor()
         print('All components are disconnected')
         section_break()
         return
@@ -340,7 +353,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.move_dobot(target_coords['x'],target_coords['y'],target_coords['z'],verbose=False)
             self.current_row = row
             self.current_column = column
-            self.update_monitor()
+            # self.update_monitor()
             return
         else:
             print("Well out of range")
@@ -485,7 +498,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
 
         while True:
             self.keyboard_config = 'General platform'
-            self.update_monitor()
+            # self.update_monitor()
             key = self.get_current_key()
             if key == Key.up:
                 self.move_to_well(self.current_row - 1, self.current_column)
@@ -715,7 +728,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     def charge_chip(self):
         print('\nAdjust pressure:')
         self.keyboard_config = 'Printer head charging'
-        self.update_monitor()
+        # self.update_monitor()
         while True:
             c = self.get_current_key()
             if c == 'x':
@@ -875,7 +888,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         refuel_counter = 0
         hold = True
         self.keyboard_config = 'Pipet Charging'
-        self.update_monitor()
+        # self.update_monitor()
         print("Press x to aspriate reagent until pipet is nearly full, then press q")
         while hold:
             key = self.get_current_key()
