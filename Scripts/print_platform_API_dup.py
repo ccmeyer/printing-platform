@@ -1,6 +1,5 @@
 # from Precigenome.PGMFC import PGMFC
 
-import Robot, Arduino, Regulator, Monitor
 import Robot, Arduino, Regulator, Monitor, ParallelProcess
 from utils import *
 from multiprocessing import Process, Queue
@@ -45,6 +44,9 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage])
         self.level_tracker.start()
 
+        self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage])
+        self.balance_tracker.start()
+
         self.keyboard_config = 'empty'
         self.location = 'unknown'
         self.current_row = 0
@@ -54,10 +56,6 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         return
 
     def update_monitor(self):
-        self.monitor.info_0.set(str(self.mode))
-        self.monitor.info_1.set(str(self.current_row))
-        self.monitor.info_2.set(str(self.current_column))
-        self.monitor.info_3.set(str(self.keyboard_config))
         while True:
             self.storage = ParallelProcess.get_recent(self.queue,self.storage)
             self.monitor.info_0.set(str(self.mode))
@@ -65,6 +63,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.monitor.info_2.set(str(self.current_column))
             self.monitor.info_3.set(str(self.keyboard_config))
             self.monitor.info_4.set(str(self.storage.level))
+            self.monitor.info_5.set(str(self.storage.mass))
             time.sleep(0.05)
         return
 
@@ -240,6 +239,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.pressure_off()
             self.close_reg()
         self.level_tracker.terminate()
+        self.balance_tracker.terminate()
         self.monitor.end_monitor()
         print('All components are disconnected')
         section_break()

@@ -74,6 +74,17 @@ class Monitor(threading.Thread):
         self.i_4 = ttk.Label(self.root, textvariable=self.info_4)
         self.i_4.grid(column=1, row=4, sticky=tk.W, padx=5, pady=5)
 
+        self.label_5 = tk.StringVar()
+        self.label_5.set('Current Mass')
+        self.l_5 = ttk.Label(self.root, textvariable=self.label_5)
+        self.l_5.grid(column=0, row=5, sticky=tk.W, padx=5, pady=5)
+
+        self.info_5 = tk.StringVar()
+        self.info_5.set('---')
+        self.i_5 = ttk.Label(self.root, textvariable=self.info_5)
+        self.i_5.grid(column=1, row=5, sticky=tk.W, padx=5, pady=5)
+
+
         self.root.mainloop()
 
 
