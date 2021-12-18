@@ -1,10 +1,9 @@
 import numpy as np
 import cv2 as cv
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import time
 
 from multiprocessing import Process, Queue
-import matplotlib.pyplot as plt
 import imutils
 from imutils import contours
 from imutils.perspective import four_point_transform

@@ -84,6 +84,25 @@ class Monitor(threading.Thread):
         self.i_5 = ttk.Label(self.root, textvariable=self.info_5)
         self.i_5.grid(column=1, row=5, sticky=tk.W, padx=5, pady=5)
 
+        self.label_6 = tk.StringVar()
+        self.label_6.set('Current Refuel Pressure')
+        self.l_6 = ttk.Label(self.root, textvariable=self.label_6)
+        self.l_6.grid(column=0, row=6, sticky=tk.W, padx=5, pady=5)
+
+        self.info_6 = tk.StringVar()
+        self.info_6.set('---')
+        self.i_6 = ttk.Label(self.root, textvariable=self.info_6)
+        self.i_6.grid(column=1, row=6, sticky=tk.W, padx=5, pady=5)
+
+        self.label_7 = tk.StringVar()
+        self.label_7.set('Current Print Pressure')
+        self.l_7 = ttk.Label(self.root, textvariable=self.label_6)
+        self.l_7.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
+
+        self.info_7 = tk.StringVar()
+        self.info_7.set('---')
+        self.i_7 = ttk.Label(self.root, textvariable=self.info_7)
+        self.i_7.grid(column=1, row=7, sticky=tk.W, padx=5, pady=5)
 
         self.root.mainloop()
 

@@ -203,7 +203,6 @@ class Robot:
         section_break()
         print("starting manual dobot control")
         self.keyboard_config = 'Manual dobot control'
-        self.update_monitor()
 
         x = self.current_coords['x']
         y = self.current_coords['y']

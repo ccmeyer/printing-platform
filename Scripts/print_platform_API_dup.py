@@ -4,7 +4,6 @@ import Robot, Arduino, Regulator, Monitor, ParallelProcess
 from utils import *
 from multiprocessing import Process, Queue
 
-
 import time
 import sys
 import msvcrt
@@ -36,13 +35,14 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
         # self.sim = False
         self.monitor = Monitor.Monitor()
+        self.terminate = False
 
         self.queue = Queue()
         self.storage = ParallelProcess.QueueStorage()
         self.queue.put(self.storage)
-
-        self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage])
-        self.level_tracker.start()
+        #
+        # self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage])
+        # self.level_tracker.start()
 
         self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage])
         self.balance_tracker.start()
@@ -64,6 +64,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.monitor.info_3.set(str(self.keyboard_config))
             self.monitor.info_4.set(str(self.storage.level))
             self.monitor.info_5.set(str(self.storage.mass))
+            self.monitor.info_6.set(str(round(self.real_refuel,3)))
+            self.monitor.info_7.set(str(round(self.real_pulse,3)))
+            if self.terminate == True:
+                print('quitting the monitor update thread')
+                break
             time.sleep(0.05)
         return
 
@@ -169,6 +174,10 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 return
             else:
                 self.load_dispenser_defaults(mode_name)
+                try:
+                    self.set_pressure(self.pulse_pressure,self.refuel_pressure)
+                except:
+                    print('Regulator must be started')
                 return
 
     def load_dispenser_defaults(self,mode):
@@ -178,6 +187,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.pulse_width = self.default_settings['dispenser_types'][mode]['pulse_width']
         self.refuel_pressure = self.default_settings['dispenser_types'][mode]['refuel_pressure']
         self.pulse_pressure = self.default_settings['dispenser_types'][mode]['pulse_pressure']
+        self.real_refuel = self.refuel_pressure
+        self.real_pulse = self.pulse_pressure
         self.test_droplet_count_low = self.default_settings['dispenser_types'][mode]['test_droplet_count_low']
         self.test_droplet_count_high = self.default_settings['dispenser_types'][mode]['test_droplet_count_high']
         self.frequency = self.default_settings['dispenser_types'][mode]['frequency']
@@ -227,19 +238,26 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.init_dobot(self.default_settings['Dobot_port'])
             self.init_ard(self.default_settings['Arduino_port'])
         print('All components are connected')
+        import matplotlib.pyplot as plt
+        global plt
+
         section_break()
         return
 
     def disconnect_all(self):
         section_break()
         print('Disconnecting all components...')
+        # self.level_tracker.terminate()
+        self.balance_tracker.terminate()
+        self.terminate = True
+        self.update_thread.join()
+        self.pressure_thread.join()
         if not self.sim:
             self.disconnect_dobot()
             self.close_ard()
             self.pressure_off()
             self.close_reg()
-        self.level_tracker.terminate()
-        self.balance_tracker.terminate()
+
         self.monitor.end_monitor()
         print('All components are disconnected')
         section_break()
@@ -572,6 +590,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             elif key == 'B':
                 # self.get_pressure()
                 self.resistance_testing()
+
             # elif c == 'r':
             #     self.record_flow()
             # elif key == 'r':
@@ -701,7 +720,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             print('Completed the fix for the incorrect parameters')
             return True
 
-        self.update_pressure(verbose=True)
+        # self.update_pressure(verbose=True)
         if self.tracking_volume:
             print('Volume tracking')
             if aspiration:

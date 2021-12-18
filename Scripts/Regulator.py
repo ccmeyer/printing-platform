@@ -2,6 +2,7 @@ from Precigenome.PGMFC import PGMFC
 import time
 import numpy as np
 from utils import *
+from threading import Thread
 
 
 class Regulator:
@@ -25,6 +26,10 @@ class Regulator:
 
         self.set_pressure(self.pulse_pressure,self.refuel_pressure)
         self.pressure_on()
+
+        self.pressure_thread = Thread(target = self.update_pressure,args=[])
+        self.pressure_thread.daemon = True
+        self.pressure_thread.start()
         return
 
     def set_pressure(self,pulse,refuel,runtime=6000):
@@ -36,17 +41,22 @@ class Regulator:
         print("Setting pressure: Pulse={}\tRefuel={}".format(pulse,refuel))
         return
 
-    def update_pressure(self,verbose=True):
-        if not self.sim:
-            pulse = self.channel_pulse.get_pressure()[0]
-            refuel = self.channel_refuel.get_pressure()[0]
-            self.real_pulse =  pulse
-            self.real_refuel = refuel
-        else:
-            pulse = self.pulse_pressure
-            refuel = self.refuel_pressure
-        if verbose:
-            print("Current pressure: Pulse={}\tRefuel={}".format(round(pulse,2),round(refuel,2)))
+    def update_pressure(self,verbose=False):
+        while True:
+            if not self.sim:
+                pulse = self.channel_pulse.get_pressure()[0]
+                refuel = self.channel_refuel.get_pressure()[0]
+                self.real_pulse =  pulse
+                self.real_refuel = refuel
+            else:
+                pulse = self.pulse_pressure
+                refuel = self.refuel_pressure
+            if verbose:
+                print("Current pressure: Pulse={}\tRefuel={}".format(round(pulse,2),round(refuel,2)))
+            if self.terminate == True:
+                print('quitting the Pressure update thread')
+                break
+            time.sleep(0.1)
         return
 
     def compare_pressures(self,tolerance=0.1,verbose=False):
@@ -54,7 +64,7 @@ class Regulator:
             print('No pressure check in Sim')
             return
 
-        self.update_pressure(verbose=verbose)
+        # self.update_pressure(verbose=verbose)
         refuel_diff = np.abs((self.real_refuel - self.refuel_pressure) / self.refuel_pressure)
         pulse_diff = np.abs((self.real_pulse - self.pulse_pressure) / self.pulse_pressure)
 
