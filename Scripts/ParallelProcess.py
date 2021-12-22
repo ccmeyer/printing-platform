@@ -119,19 +119,30 @@ def level_tracker(queue,storage,port):
         except:
             print('......level_tracker failed......')
             time.sleep(1)
+    levels = []
+    counter = 0
     while(True):
         storage = get_recent(queue,storage)
-        # ret, frame = vid.read()
-        #
-        # cv.imshow('Level_tracker', frame)
+
         try:
             ret, frame = vid.read()
 
             cv.imshow('Level_tracker', frame)
             level = find_level(frame,show=True)
-            storage.level = level
+
+
+            if len(levels) < 5:
+                levels.append(level)
+            else:
+                levels = levels[1:]
+                levels.append(i)
+
+            storage.level = round(np.mean(level),0)
         except:
-            storage.level = 'unknown'
+            counter += 1
+            if counter > 10:
+                storage.level = 'unknown'
+                counter = 0
         queue.put(storage)
         time.sleep(0.01)
 
@@ -383,19 +394,28 @@ def balance_tracker(queue, storage,port):
             print('......balance_tracker failed......')
             time.sleep(1)
 
+    masses = []
+    counter = 0
     while(True):
         storage = get_recent(queue,storage)
-        # ret, frame = vid.read()
-        #
-        # cv.imshow('Balance_tracker', frame)
         try:
             ret, frame = vid.read()
 
             cv.imshow('Balance_tracker', frame)
             mass = extract_all_numbers(frame,show=True)
-            storage.mass = mass
+
+            if len(masses) < 5:
+                masses.append(mass)
+            else:
+                masses = masses[1:]
+                masses.append(i)
+
+            storage.mass = round(np.mean(mass),1)
         except:
-            storage.mass = 'unknown'
+            counter += 1
+            if counter > 10:
+                storage.mass = 'unknown'
+                counter = 0
         queue.put(storage)
         time.sleep(0.01)
 
