@@ -41,10 +41,10 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.storage = ParallelProcess.QueueStorage()
         self.queue.put(self.storage)
         #
-        # self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage])
-        # self.level_tracker.start()
+        self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage,port=1])
+        self.level_tracker.start()
 
-        self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage])
+        self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage,port=2])
         self.balance_tracker.start()
 
         self.keyboard_config = 'empty'
@@ -247,7 +247,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     def disconnect_all(self):
         section_break()
         print('Disconnecting all components...')
-        # self.level_tracker.terminate()
+        self.level_tracker.terminate()
         self.balance_tracker.terminate()
         self.terminate = True
         self.update_thread.join()

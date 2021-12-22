@@ -1,12 +1,13 @@
 import numpy as np
 import cv2 as cv
-# import matplotlib.pyplot as plt
 import time
 
 from multiprocessing import Process, Queue
 import imutils
 from imutils import contours
 from imutils.perspective import four_point_transform
+from scipy.signal import find_peaks
+
 from utils import *
 
 class QueueStorage():
@@ -31,74 +32,81 @@ def smooth(y, box_pts):
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
 
-def find_level(img,threshold=70,show=False):
+def find_level(img,threshold=50,show=False):
     img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    img_gray = cv.rotate(img_gray, cv.ROTATE_180)
     bi = cv.bilateralFilter(img_gray, 10, 75, 75)
-
     thresh = cv.inRange(bi, threshold, 255);
-    kernel_dilate = np.ones((5,5), np.uint8)
-    kernel_erode = np.ones((10,10), np.uint8)
-    iters = 3
-    for a in range(iters):
-        thresh = cv.dilate(thresh, kernel_dilate)
-    for a in range(iters):
-        thresh = cv.erode(thresh,kernel_erode)
 
     cnts = cv.findContours(thresh.copy(), cv.RETR_EXTERNAL,
-        cv.CHAIN_APPROX_SIMPLE)
+    cv.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
     cnts = sorted(cnts, key=cv.contourArea, reverse=True)
     displayCnt = None
 
-    for c in cnts:
-        # approximate the contour
-        peri = cv.arcLength(c, True)
-        approx = cv.approxPolyDP(c, 0.02 * peri, True)
-        # if the contour has four vertices, then we have found chip
-        if len(approx) == 4:
-            displayCnt = approx
-            break
+    boundRect = [None]*len(cnts)
 
-    output = four_point_transform(img_gray, displayCnt.reshape(4, 2))
+    for i,c in enumerate(cnts):
+        boundRect[i] = cv.boundingRect(c)
+    boundRect = boundRect[0]
+    temp = img_gray.copy()
+
+    if show:
+        cv.rectangle(temp, (int(boundRect[0]), int(boundRect[1])), \
+                  (int(boundRect[0]+boundRect[2]), int(boundRect[1]+boundRect[3])), 256, 2)
+        cv.imshow('Rectangle',temp)
+
+    corners = np.array([[[int(boundRect[0]), int(boundRect[1])], \
+          [int(boundRect[0]), int(boundRect[1]+boundRect[3])],\
+          [int(boundRect[0]+boundRect[2]), int(boundRect[1])],\
+          [int(boundRect[0]+boundRect[2]), int(boundRect[1]+boundRect[3])]]])
+
+    output = four_point_transform(img_gray, corners.reshape(4, 2))
+    l,w = output.shape
+    output = output[int(l*0.2):int(l*0.8),0:w]
     l,w = output.shape
 
-    offset = 0.05 * w
+    offset = 0.1*w
     channel = output[0:l,int(w//2-offset):int(w//2+offset)]
-    chan_means = np.mean(channel,axis=1)
 
+    chan_means = np.mean(channel,axis=1)
     x = range(len(chan_means))
+
     smoothed = smooth(chan_means,10)
     smoothed = smoothed[5:-5]
 
-    smooth_diffs = np.diff(smoothed)
-    level = np.where(smooth_diffs == np.min(smooth_diffs))[0][0]
-
-    low_mean = np.mean(smoothed[0:20])
-    level_mean = np.mean(smoothed[level:level+10])
-    diff_internal = (level_mean - low_mean) / low_mean * 100
+    smooth_diffs = [-1*d for d in np.diff(smoothed)]
 
     reference = output[0:int(l),int(w//2-(4*offset)):int(w//2-(2*offset))]
-    chan_mean = np.mean(channel)
     ref_mean = np.mean(reference)
+    chan_mean = np.mean(channel)
+
     diff_ref = ((chan_mean-ref_mean)/ref_mean)*100
 
-    if diff_internal < -5:
-        level = level
-    elif diff_ref > 80:
-        level =  l
-    else:
-        level = 0
+    try:
+        peaks, prop = find_peaks(smooth_diffs, width=5, height=2)
+        level = int(round(prop['right_ips'][0],0))
+    except:
+        print(f'No level detected: ref {diff_ref}')
+        if diff_ref > 50:
+            level = l
+        else:
+            level = 0
 
+    percent = 100 - (level / l *100)
+    print('Expected level:',percent)
     if show:
         temp = output.copy()
-        cv.line(temp,(w//3,level),(2*w//3,level),255,10)
-        cv.imshow('level', temp)
-        cv.waitKey(1)
+        cv.line(temp,(int(w//2-offset),0),(int(w//2-offset),l),255,1)
+        cv.line(temp,(int(w//2+offset),0),(int(w//2+offset),l),255,1)
+        cv.line(temp,(0,level),(w,level),255,3)
+        cv.line(temp,(int(w//2-(4*offset)),0),(int(w//2-(4*offset)),l),0,1)
+        cv.line(temp,(int(w//2-(2*offset)),0),(int(w//2-(2*offset)),l),0,1)
+        cv.imshow('Annotated',temp)
+    return percent
 
-    return level,diff_internal,diff_ref,l
-
-def level_tracker(queue,storage):
-    vid = cv.VideoCapture(1)
+def level_tracker(queue,storage,port=1):
+    vid = cv.VideoCapture(port)
 
     while(True):
         storage = get_recent(queue,storage)
@@ -346,8 +354,8 @@ def extract_all_numbers(img, show=False):
 
     return final_number
 
-def balance_tracker(queue, storage):
-    vid = cv.VideoCapture(1)
+def balance_tracker(queue, storage,port=1):
+    vid = cv.VideoCapture(port)
 
     while(True):
         storage = get_recent(queue,storage)
