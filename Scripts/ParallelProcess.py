@@ -87,14 +87,14 @@ def find_level(img,threshold=50,show=False):
         peaks, prop = find_peaks(smooth_diffs, width=5, height=2)
         level = int(round(prop['right_ips'][0],0))
     except:
-        print(f'No level detected: ref {diff_ref}')
+        # print(f'No level detected: ref {diff_ref}')
         if diff_ref > 50:
             level = l
         else:
             level = 0
 
     percent = 100 - (level / l *100)
-    print('Expected level:',percent)
+    # print('Expected level:',percent)
     if show:
         temp = output.copy()
         cv.line(temp,(int(w//2-offset),0),(int(w//2-offset),l),255,1)
@@ -105,16 +105,30 @@ def find_level(img,threshold=50,show=False):
         cv.imshow('Annotated',temp)
     return percent
 
-def level_tracker(queue,storage,port=1):
-    vid = cv.VideoCapture(port)
-
+def level_tracker(queue,storage,port):
+    while True:
+        try:
+            # cv.namedWindow('Level_tracker')
+            vid = cv.VideoCapture(port)
+            if vid.isOpened():  # try to get the first frame
+                print('-----Level tracker cam found')
+                break
+            else:
+                print('......Waiting for level_tracker......')
+                time.sleep(1)
+        except:
+            print('......level_tracker failed......')
+            time.sleep(1)
     while(True):
         storage = get_recent(queue,storage)
-        ret, frame = vid.read()
-
-        cv.imshow('frame', frame)
+        # ret, frame = vid.read()
+        #
+        # cv.imshow('Level_tracker', frame)
         try:
-            level = find_level(frame,show=True)[0]
+            ret, frame = vid.read()
+
+            cv.imshow('Level_tracker', frame)
+            level = find_level(frame,show=True)
             storage.level = level
         except:
             storage.level = 'unknown'
@@ -354,15 +368,30 @@ def extract_all_numbers(img, show=False):
 
     return final_number
 
-def balance_tracker(queue, storage,port=1):
-    vid = cv.VideoCapture(port)
+def balance_tracker(queue, storage,port):
+    while True:
+        try:
+            cv.namedWindow('Balance_tracker')
+            vid = cv.VideoCapture(port)
+            if vid.isOpened():  # try to get the first frame
+                print('-----balance tracker cam found')
+                break
+            else:
+                print('......Waiting for balance_tracker......')
+                time.sleep(1)
+        except:
+            print('......balance_tracker failed......')
+            time.sleep(1)
 
     while(True):
         storage = get_recent(queue,storage)
-        ret, frame = vid.read()
-
-        cv.imshow('frame', frame)
+        # ret, frame = vid.read()
+        #
+        # cv.imshow('Balance_tracker', frame)
         try:
+            ret, frame = vid.read()
+
+            cv.imshow('Balance_tracker', frame)
             mass = extract_all_numbers(frame,show=True)
             storage.mass = mass
         except:

@@ -57,6 +57,7 @@ class Regulator:
                 print('quitting the Pressure update thread')
                 break
             time.sleep(0.1)
+        print('shut down pressure')
         return
 
     def compare_pressures(self,tolerance=0.1,verbose=False):

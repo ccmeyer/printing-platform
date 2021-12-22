@@ -40,12 +40,16 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.queue = Queue()
         self.storage = ParallelProcess.QueueStorage()
         self.queue.put(self.storage)
-        #
-        self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage,port=1])
-        self.level_tracker.start()
 
-        self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage,port=2])
-        self.balance_tracker.start()
+        self.use_level = True
+        if self.use_level == True:
+            self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage,1])
+            self.level_tracker.start()
+
+        self.use_balance = True
+        if self.use_balance == True:
+            self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage,2])
+            self.balance_tracker.start()
 
         self.keyboard_config = 'empty'
         self.location = 'unknown'
@@ -70,6 +74,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 print('quitting the monitor update thread')
                 break
             time.sleep(0.05)
+        print('monitor down')
         return
 
     def on_press(self,key):
@@ -247,13 +252,20 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     def disconnect_all(self):
         section_break()
         print('Disconnecting all components...')
-        self.level_tracker.terminate()
-        self.balance_tracker.terminate()
+        if self.use_level == True:
+            self.level_tracker.terminate()
+        if self.use_balance == True:
+            self.balance_tracker.terminate()
         self.terminate = True
         self.update_thread.join()
+        print('update joined')
         self.pressure_thread.join()
+        print('pressure joined')
+
         if not self.sim:
             self.disconnect_dobot()
+            print('dobot')
+
             self.close_ard()
             self.pressure_off()
             self.close_reg()
