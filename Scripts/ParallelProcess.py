@@ -54,7 +54,7 @@ def find_level(img,threshold=50,show=False):
     if show:
         cv.rectangle(temp, (int(boundRect[0]), int(boundRect[1])), \
                   (int(boundRect[0]+boundRect[2]), int(boundRect[1]+boundRect[3])), 256, 2)
-        cv.imshow('Rectangle',temp)
+        # cv.imshow('Rectangle',temp)
 
     corners = np.array([[[int(boundRect[0]), int(boundRect[1])], \
           [int(boundRect[0]), int(boundRect[1]+boundRect[3])],\
@@ -107,47 +107,48 @@ def find_level(img,threshold=50,show=False):
 
 def level_tracker(queue,storage,port):
     while True:
-        try:
-            # cv.namedWindow('Level_tracker')
-            vid = cv.VideoCapture(port)
-            if vid.isOpened():  # try to get the first frame
-                print('-----Level tracker cam found')
-                break
-            else:
-                print('......Waiting for level_tracker......')
+        while True:
+            try:
+                # cv.namedWindow('Level_tracker')
+                vid = cv.VideoCapture(port)
+                if vid.isOpened():  # try to get the first frame
+                    print('-----Level tracker cam found')
+                    break
+                else:
+                    print('......Waiting for level_tracker......')
+                    time.sleep(1)
+            except:
+                print('......level_tracker failed......')
                 time.sleep(1)
-        except:
-            print('......level_tracker failed......')
-            time.sleep(1)
-    levels = []
-    counter = 0
-    while(True):
-        storage = get_recent(queue,storage)
+        levels = []
+        counter = 0
+        while(True):
+            storage = get_recent(queue,storage)
 
-        try:
-            ret, frame = vid.read()
+            try:
+                ret, frame = vid.read()
 
-            cv.imshow('Level_tracker', frame)
-            level = find_level(frame,show=True)
+                # cv.imshow('Level_tracker', frame)
+                level = find_level(frame,show=True)
 
 
-            if len(levels) < 5:
-                levels.append(level)
-            else:
-                levels = levels[1:]
-                levels.append(i)
+                if len(levels) < 5:
+                    levels.append(level)
+                else:
+                    levels = levels[1:]
+                    levels.append(i)
 
-            storage.level = round(np.mean(level),0)
-        except:
-            counter += 1
-            if counter > 10:
-                storage.level = 'unknown'
-                counter = 0
-        queue.put(storage)
-        time.sleep(0.01)
+                storage.level = round(np.mean(level),0)
+            except:
+                counter += 1
+                if counter > 50:
+                    storage.level = 'unknown'
+                    counter = 0
+            queue.put(storage)
+            time.sleep(0.01)
 
-        if cv.waitKey(1) & 0xFF == ord('='):
-            break
+            if cv.waitKey(1) & 0xFF == ord('='):
+                break
 
 ### Balance tracker code:
 
@@ -381,43 +382,44 @@ def extract_all_numbers(img, show=False):
 
 def balance_tracker(queue, storage,port):
     while True:
-        try:
-            cv.namedWindow('Balance_tracker')
-            vid = cv.VideoCapture(port)
-            if vid.isOpened():  # try to get the first frame
-                print('-----balance tracker cam found')
-                break
-            else:
-                print('......Waiting for balance_tracker......')
+        while True:
+            try:
+                # cv.namedWindow('Balance_tracker')
+                vid = cv.VideoCapture(port)
+                if vid.isOpened():  # try to get the first frame
+                    print('-----balance tracker cam found')
+                    break
+                else:
+                    print('......Waiting for balance_tracker......')
+                    time.sleep(1)
+            except:
+                print('......balance_tracker failed......')
                 time.sleep(1)
-        except:
-            print('......balance_tracker failed......')
-            time.sleep(1)
 
-    masses = []
-    counter = 0
-    while(True):
-        storage = get_recent(queue,storage)
-        try:
-            ret, frame = vid.read()
+        masses = []
+        counter = 0
+        while(True):
+            storage = get_recent(queue,storage)
+            try:
+                ret, frame = vid.read()
 
-            cv.imshow('Balance_tracker', frame)
-            mass = extract_all_numbers(frame,show=True)
+                # cv.imshow('Balance_tracker', frame)
+                mass = extract_all_numbers(frame,show=True)
 
-            if len(masses) < 5:
-                masses.append(mass)
-            else:
-                masses = masses[1:]
-                masses.append(i)
+                if len(masses) < 5:
+                    masses.append(mass)
+                else:
+                    masses = masses[1:]
+                    masses.append(i)
 
-            storage.mass = round(np.mean(mass),1)
-        except:
-            counter += 1
-            if counter > 10:
-                storage.mass = 'unknown'
-                counter = 0
-        queue.put(storage)
-        time.sleep(0.01)
+                storage.mass = round(np.mean(mass),1)
+            except:
+                counter += 1
+                if counter > 50:
+                    storage.mass = 'unknown'
+                    counter = 0
+            queue.put(storage)
+            time.sleep(0.01)
 
-        if cv.waitKey(1) & 0xFF == ord('='):
-            break
+            if cv.waitKey(1) & 0xFF == ord('='):
+                break
