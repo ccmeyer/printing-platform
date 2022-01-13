@@ -96,13 +96,24 @@ class Monitor(threading.Thread):
 
         self.label_7 = tk.StringVar()
         self.label_7.set('Current Print Pressure')
-        self.l_7 = ttk.Label(self.root, textvariable=self.label_6)
+        self.l_7 = ttk.Label(self.root, textvariable=self.label_7)
         self.l_7.grid(column=0, row=7, sticky=tk.W, padx=5, pady=5)
 
         self.info_7 = tk.StringVar()
         self.info_7.set('---')
         self.i_7 = ttk.Label(self.root, textvariable=self.info_7)
         self.i_7.grid(column=1, row=7, sticky=tk.W, padx=5, pady=5)
+
+        self.label_8 = tk.StringVar()
+        self.label_8.set('Stable Mass')
+        self.l_8 = ttk.Label(self.root, textvariable=self.label_8)
+        self.l_8.grid(column=0, row=8, sticky=tk.W, padx=5, pady=5)
+
+        self.info_8 = tk.StringVar()
+        self.info_8.set('---')
+        self.i_8 = ttk.Label(self.root, textvariable=self.info_8)
+        self.i_8.grid(column=1, row=8, sticky=tk.W, padx=5, pady=5)
+
 
         self.root.mainloop()
 

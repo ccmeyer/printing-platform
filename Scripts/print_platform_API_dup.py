@@ -35,12 +35,19 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.current_key = False
         self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
         # self.sim = False
+
+        self.log_prints = False
         self.monitor = Monitor.Monitor()
         self.terminate = False
 
         self.queue = Queue()
         self.storage = ParallelProcess.QueueStorage()
         self.queue.put(self.storage)
+
+        self.print_log = []
+        self.mass_record = []
+        self.mass_diff = 0
+        self.stable_mass = 'not_stable'
 
         self.use_level = False
         if self.use_level == True:
@@ -75,7 +82,23 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.monitor.info_5.set(str(self.storage.mass))
             self.monitor.info_6.set(str(round(self.real_refuel,3)))
             self.monitor.info_7.set(str(round(self.real_pulse,3)))
-            self.record_mass()
+
+            if self.storage.mass != 'unknown':
+                if len(self.mass_record) < 10:
+                    self.mass_record.append(self.storage.mass)
+                else:
+                    self.mass_record = self.mass_record[1:]
+                    self.mass_record.append(self.storage.mass)
+                    self.mass_diff = np.mean([self.mass_record[i]-self.mass_record[0] for i in range(len(self.mass_record))])
+                    if self.mass_diff < 0.05:
+                        self.stable_mass = round(np.mean(self.mass_record),2)
+                    else:
+                        self.stable_mass = 'not_stable'
+
+            self.monitor.info_8.set(self.stable_mass)
+
+            if self.log_prints:
+                self.record_mass()
             if self.terminate == True:
                 print('quitting the monitor update thread')
                 break
@@ -209,8 +232,6 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.calibrated = False
         self.tracking_volume = False
         self.mode = mode
-        self.print_log = []
-        self.mass_log = []
 
         self.update_thread = Thread(target = self.update_monitor,args=[])
         self.update_thread.daemon = True
@@ -568,9 +589,15 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             elif key == 'l':
                 self.move_to_location(location='loading')
             elif key == '[':
-                self.move_to_location(location='tube')
+                if self.mode == 'p1000':
+                    self.move_to_location(location='tube')
+                elif self.mode == 'droplet':
+                    self.move_to_location(location='balance')
             elif key == ']':
-                self.move_to_location(location='tube',height='above_side')
+                if self.mode == 'p1000':
+                    self.move_to_location(location='tube',height='above_side')
+                elif self.mode == 'droplet':
+                    self.move_to_location(location='balance',height='above')
             elif key == 'y':
                 self.change_print_position()
             elif key == 'h':
@@ -592,6 +619,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 self.set_pressure(2,0.3)
             elif key == 'M':
                 self.select_mode()
+            elif key == 'L':
+                if self.log_prints:
+                    self.terminate_log()
+                else:
+                    self.initiate_log()
             # elif key == 'r':
             #     print('Log')
             #     print(self.print_log)
@@ -676,10 +708,23 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             else:
                 print('Please enter a valid key, not:',key)
 
+    def initiate_log(self):
+        print('Initiating log')
+        name = input('Enter name of the file: ')
+        path = ''.join([self.base,'\\Logs\\',name,'.csv'])
+        self.log_path = path
+        self.print_log = []
+        self.log_prints = True
+        return
+
+    def terminate_log(self):
+        print('Terminating Log')
+        self.log_prints = False
+        return
 
     def record_print_event(self,droplets,refuel_width,print_width):
         self.print_log.append([datetime.datetime.now(),self.real_refuel,self.real_pulse,refuel_width,print_width,droplets,self.storage.mass])
-        pd.DataFrame(self.print_log,columns=['time','refuel_pressure','print_pressure','refuel_width','pulse_width','droplets','mass']).to_csv('../test_print_log.csv')
+        pd.DataFrame(self.print_log,columns=['time','refuel_pressure','print_pressure','refuel_width','pulse_width','droplets','mass']).to_csv(self.log_path)
         print('recorded event')
         return
 
@@ -691,7 +736,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         Sends the desired printing instructions to the Arduino
         '''
         print('starting print... ',end='')
-        self.record_print_event(count,refuel_width,pulse_width)
+        if self.log_prints:
+            self.record_print_event(count,refuel_width,pulse_width)
         if self.sim:
             print('simulated print:',freq,pulse_width,refuel_width,count)
             if self.tracking_volume:
