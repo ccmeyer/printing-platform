@@ -59,6 +59,7 @@ class Robot:
             self.current_coords = {'x':dobot_coords[0],'y':dobot_coords[1],'z':dobot_coords[2]}
             print('current_coords:', self.current_coords)
             # self.current_coords = self.calibration_data['loading']
+        self.gripper = 'inactive'
         return
 
     def disconnect_dobot(self):
@@ -145,6 +146,7 @@ class Robot:
                 self.run_cmd()
             elif self.robot_type == 'Magician':
                 last_index = dType.SetEndEffectorGripper(self.api,True,False,isQueued=1)
+        self.gripper = 'active'
         print('Activated gripper')
         return
 
@@ -156,6 +158,7 @@ class Robot:
                 self.run_cmd()
             elif self.robot_type == 'Magician':
                 last_index = dType.SetEndEffectorGripper(self.api,False,False,isQueued=1)
+        self.gripper = 'inactive'
         print('Deactivated gripper')
         return
 
@@ -191,6 +194,7 @@ class Robot:
         self.open_gripper()
         input('Press enter to close gripper')
         self.close_gripper()
+        self.gripper = 'active'
         return
 
     def dobot_manual_drive(self):

@@ -908,6 +908,21 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         input('Place tube back in holder and press enter')
         return current_vol
 
+    def calibrate_printer_head(self, target=6):
+        if not self.ask_yes_no(message='Calibrate printer head? (y/n)'):
+            print('Quitting...')
+            section_break()
+            return
+
+        if self.gripper == 'inactive':
+            if self.ask_yes_no(message='Move to loading position to activate gripper? (y/n)'):
+                self.move_to_location(location='loading')
+            self.load_gripper()
+
+        self.move_to_location(location='balance')
+        
+
+
     def calibrate_chip(self,target = 6):
         if not self.ask_yes_no(message='Calibrate chip? (y/n)'):
             print('Quitting...')
