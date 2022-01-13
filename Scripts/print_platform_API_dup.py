@@ -22,6 +22,7 @@ import shutil
 from threading import Thread
 from time import sleep
 
+import datetime
 
 class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     '''
@@ -41,14 +42,14 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.storage = ParallelProcess.QueueStorage()
         self.queue.put(self.storage)
 
-        self.use_level = True
+        self.use_level = False
         if self.use_level == True:
             self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage,1])
             self.level_tracker.start()
 
         self.use_balance = True
         if self.use_balance == True:
-            self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage,2])
+            self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage,1])
             self.balance_tracker.start()
 
         self.keyboard_config = 'empty'
@@ -58,6 +59,10 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         time.sleep(0.5)
         self.read_defaults()
         return
+
+    def record_mass(self):
+        self.print_log.append([datetime.datetime.now(), self.real_refuel,self.real_pulse,0,0,0,self.storage.mass])
+        pd.DataFrame(self.print_log,columns=['time','refuel_pressure','print_pressure','refuel_width','pulse_width','droplets','mass']).to_csv('../test_print_log.csv')
 
     def update_monitor(self):
         while True:
@@ -70,10 +75,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.monitor.info_5.set(str(self.storage.mass))
             self.monitor.info_6.set(str(round(self.real_refuel,3)))
             self.monitor.info_7.set(str(round(self.real_pulse,3)))
+            self.record_mass()
             if self.terminate == True:
                 print('quitting the monitor update thread')
                 break
-            time.sleep(0.05)
+            time.sleep(0.25)
         print('monitor down')
         return
 
@@ -203,6 +209,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.calibrated = False
         self.tracking_volume = False
         self.mode = mode
+        self.print_log = []
+        self.mass_log = []
 
         self.update_thread = Thread(target = self.update_monitor,args=[])
         self.update_thread.daemon = True
@@ -259,10 +267,10 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.terminate = True
         self.update_thread.join()
         print('update joined')
-        self.pressure_thread.join()
-        print('pressure joined')
 
         if not self.sim:
+            self.pressure_thread.join()
+            print('pressure joined')
             self.disconnect_dobot()
             print('dobot')
 
@@ -584,7 +592,14 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 self.set_pressure(2,0.3)
             elif key == 'M':
                 self.select_mode()
-            # elif c == 'r':
+            # elif key == 'r':
+            #     print('Log')
+            #     print(self.print_log)
+            #     temp = pd.DataFrame(self.print_log,columns=['time','refuel','print','droplets'])
+            #     print(temp)
+            #     temp.to_excel('./test_print_log_new.xlsx')
+            #     print('recorded event')
+
             #     self.pressure_test()
             elif key == 'x':
                 self.refuel_test()
@@ -662,6 +677,12 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 print('Please enter a valid key, not:',key)
 
 
+    def record_print_event(self,droplets,refuel_width,print_width):
+        self.print_log.append([datetime.datetime.now(),self.real_refuel,self.real_pulse,refuel_width,print_width,droplets,self.storage.mass])
+        pd.DataFrame(self.print_log,columns=['time','refuel_pressure','print_pressure','refuel_width','pulse_width','droplets','mass']).to_csv('../test_print_log.csv')
+        print('recorded event')
+        return
+
     def print_droplets_current(self,count):
         return self.print_droplets(self.frequency,self.pulse_width,self.refuel_width,count)
 
@@ -670,6 +691,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         Sends the desired printing instructions to the Arduino
         '''
         print('starting print... ',end='')
+        self.record_print_event(count,refuel_width,pulse_width)
         if self.sim:
             print('simulated print:',freq,pulse_width,refuel_width,count)
             if self.tracking_volume:
