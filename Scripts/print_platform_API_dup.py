@@ -48,6 +48,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.mass_record = []
         self.mass_diff = 0
         self.stable_mass = 'not_stable'
+        self.calibrating = False
 
         self.use_level = False
         if self.use_level == True:
@@ -645,7 +646,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 if self.mode == 'p1000':
                     self.calibrate_pipet()
                 elif self.mode == 'droplet':
-                    self.calibrate_chip()
+                    self.calibrate_printer_head()
             elif key == 'B':
                 # self.get_pressure()
                 self.resistance_testing()
@@ -908,7 +909,87 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         input('Place tube back in holder and press enter')
         return current_vol
 
-    def calibrate_printer_head(self, target=6):
+    def control_printing(self):
+
+        section_break()
+        print("Controlling pressure...")
+
+        while True:
+            self.keyboard_config = 'Controlling pressures'
+            # self.update_monitor()
+            key = self.get_current_key()
+            if key == '1':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+            elif key == '2':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+            elif key == '3':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+            elif key == '4':
+                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+
+            elif key == '6':
+                self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+            elif key == '7':
+                self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+            elif key == '8':
+                self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+            elif key == '9':
+                self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+
+            elif key == 'x':
+                self.refuel_test()
+            elif key == 'c':
+                self.pulse_test()
+            elif key == 'z':
+                self.refuel_test(high=True)
+            elif key == 'v':
+                self.pulse_test(high=True)
+
+            elif key == 't':
+                self.print_droplets_current(10)
+            elif key == 'T':
+                for i in range(5):
+                    self.print_droplets_current(20)
+                    time.sleep(0.25)
+
+            elif key == '[':
+                self.move_to_location(location='balance')
+            elif key == ']':
+                self.move_to_location(location='balance',height='above')
+            elif key == Key.esc:
+                continue
+            elif key == "q":
+                if self.ask_yes_no(message='Finished checking pressures? (y/n)'):
+                    print('Moving on...')
+                    section_break()
+                    return
+                else:
+                    print("Didn't quit")
+            else:
+                print('Please enter a valid key, not:',key)
+
+    def wait_for_stable_mass(self):
+        print('--- Waiting for balance to stabilize...')
+        count = 0
+        while True:
+            if self.stable_mass != 'not_stable':
+                print(f'Count:{count}')
+                count += 1
+            else:
+                count = 0
+                print('.',end='')
+            if count == 10:
+                print('Mass stabilized')
+                return self.stable_mass
+
+            if self.check_for_pause():
+                if self.ask_yes_no(message="Quit waiting for scale? (y/n)"):
+                    print('Quitting\n')
+                    return self.stable_mass
+            time.sleep(0.5)
+
+
+    def calibrate_printer_head(self, target=6,tolerance=0.05):
         if not self.ask_yes_no(message='Calibrate printer head? (y/n)'):
             print('Quitting...')
             section_break()
@@ -918,9 +999,25 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             if self.ask_yes_no(message='Move to loading position to activate gripper? (y/n)'):
                 self.move_to_location(location='loading')
             self.load_gripper()
-
+        self.calibrating = True
         self.move_to_location(location='balance')
-        
+        while self.calibrating:
+            print('Charge the channel and check that the refuel pressure is sufficient')
+            self.control_printing()
+            mass_initial = self.wait_for_stable_mass()
+            self.test_print()
+            mass_final = self.wait_for_stable_mass()
+            mass_diff = mass_final - mass_initial
+            print(f'The mass difference is {mass_diff}')
+
+            if mass_diff > (target*(1-tolerance)) and mass_diff < (target*(1+tolerance)):
+                print('TARGET VOLUME ACHIEVED')
+                return
+            else:
+                proportion = (mass_diff / target)
+                print('Current proportion:',proportion)
+                if not self.ask_yes_no(message='Continue calibrating? (y/n)'): return
+                self.set_pressure((self.pulse_pressure/proportion),(self.refuel_pressure/proportion))
 
 
     def calibrate_chip(self,target = 6):

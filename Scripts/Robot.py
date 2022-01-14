@@ -130,6 +130,9 @@ class Robot:
         '''
         if verbose:
             print('Dobot moving...',end='')
+        if np.sqrt((x*x) + (y*y)) >= 395:
+            print(f'Coordinates are out of bounds x:{x} y:{y}')
+            return
         if not self.sim:
             last_index = dType.SetPTPCmd(self.api, dType.PTPMode.PTPMOVJXYZMode, x,y,z,0, isQueued = 1)
             self.run_cmd()
