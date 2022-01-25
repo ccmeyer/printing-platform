@@ -15,7 +15,7 @@ class Arduino:
         print('Arduino is connected')
         return
 
-    def SetParam_CtrlSeq(feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
+    def SetParam_CtrlSeq(self,feq,pw,repw,pc):  # frequency, pulsewidth and pulsecount
         '''
         Packages the printing information for transfer to the Arduino to open and
         close the valves as instructed. The Arduino should be loaded with the program
@@ -31,7 +31,7 @@ class Arduino:
         temp = bytes(single_Ctrl)
         return temp
 
-    def Switch_CtrlSeq(state):
+    def Switch_CtrlSeq(self,state):
         '''
         Signals to the Arduino that the printing command is complete
         '''
@@ -53,7 +53,9 @@ class Arduino:
         return
 
     def read_ard(self):
-        return self.ser.readall().decode()
+        val = self.ser.readall().decode()
+        print('Ard output:',val)
+        return val
 
     def refuel_open(self):
         if not self.ask_yes_no(message='Open refuel valve? (y/n)'):

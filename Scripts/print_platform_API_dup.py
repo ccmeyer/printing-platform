@@ -395,7 +395,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         elif direct == False and height == 'above_side':
             self.move_dobot(self.current_coords['x'],self.current_coords['y'], self.height)
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
-            self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y']+30, self.height)
+            self.move_dobot(self.calibration_data[location]['x']-30,self.calibration_data[location]['y'], self.height)
         elif direct == True and height == 'above':
             self.move_dobot(self.calibration_data[location]['x'],self.calibration_data[location]['y'], self.height)
 
@@ -840,74 +840,74 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 self.print_droplets(self.frequency,self.pulse_width,0,count)
         return
 
-    def charge_chip(self):
-        print('\nAdjust pressure:')
-        self.keyboard_config = 'Printer head charging'
-        # self.update_monitor()
-        while True:
-            c = self.get_current_key()
-            if c == 'x':
-                self.refuel_test()
-            elif c == 'c':
-                self.pulse_test()
-            elif c =='t':
-                self.print_droplets_current(10)
-            elif c =='T':
-                self.test_print()
-            elif c == '1':
-                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
-            elif c == '2':
-                self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-            elif c == '3':
-                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
-            elif c == '4':
-                self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
-            elif c == '6':
-                self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
-            elif c == '7':
-                self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-            elif c == '8':
-                self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
-            elif c == '9':
-                self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-            elif c == '[':
-                self.move_to_location(location='tube')
-            elif c == ']':
-                self.move_to_location(location='tube',height='above')
-            elif c == Key.esc:
-                continue
-            elif c == "q":
-                if self.ask_yes_no(message='Finished charging? (y/n)'):
-                    print('Quitting...')
-                    section_break()
-                    return
-                else:
-                    print("Didn't quit")
-            else:
-                print("not valid")
-        return
+    # def charge_chip(self):
+    #     print('\nAdjust pressure:')
+    #     self.keyboard_config = 'Printer head charging'
+    #     # self.update_monitor()
+    #     while True:
+    #         c = self.get_current_key()
+    #         if c == 'x':
+    #             self.refuel_test()
+    #         elif c == 'c':
+    #             self.pulse_test()
+    #         elif c =='t':
+    #             self.print_droplets_current(10)
+    #         elif c =='T':
+    #             self.test_print()
+    #         elif c == '1':
+    #             self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+    #         elif c == '2':
+    #             self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+    #         elif c == '3':
+    #             self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+    #         elif c == '4':
+    #             self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+    #         elif c == '6':
+    #             self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+    #         elif c == '7':
+    #             self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+    #         elif c == '8':
+    #             self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+    #         elif c == '9':
+    #             self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+    #         elif c == '[':
+    #             self.move_to_location(location='tube')
+    #         elif c == ']':
+    #             self.move_to_location(location='tube',height='above')
+    #         elif c == Key.esc:
+    #             continue
+    #         elif c == "q":
+    #             if self.ask_yes_no(message='Finished charging? (y/n)'):
+    #                 print('Quitting...')
+    #                 section_break()
+    #                 return
+    #             else:
+    #                 print("Didn't quit")
+    #         else:
+    #             print("not valid")
+    #     return
 
-    def test_print(self):
+    def test_print(self,droplets=20):
         for i in range(5):
-            self.print_droplets_current(20)
-            time.sleep(0.5)
+            self.print_droplets_current(droplets)
+            time.sleep(0.25)
         return
 
-    def test_pressure(self,print_pressure):
-        self.set_pressure(print_pressure,1)
-        self.move_to_location(location='tube')
-        self.charge_chip()
-        self.set_pressure(self.pulse_pressure,print_pressure/12)
-
-        self.move_to_location(location='tube',height='above')
-        input('Tare the scale, place tube in holder, and press Enter')
-        self.move_to_location(location='tube')
-        self.test_print()
-        self.move_to_location(location='tube',height='above')
-
-        current_vol = ask_for_number(message='Enter mg of liquid printed: ')
-        input('Place tube back in holder and press enter')
-        return current_vol
+    # def test_pressure(self,print_pressure):
+    #     self.set_pressure(print_pressure,1)
+    #     self.move_to_location(location='tube')
+    #     self.charge_chip()
+    #     self.set_pressure(self.pulse_pressure,print_pressure/12)
+    #
+    #     self.move_to_location(location='tube',height='above')
+    #     input('Tare the scale, place tube in holder, and press Enter')
+    #     self.move_to_location(location='tube')
+    #     self.test_print()
+    #     self.move_to_location(location='tube',height='above')
+    #
+    #     current_vol = ask_for_number(message='Enter mg of liquid printed: ')
+    #     input('Place tube back in holder and press enter')
+    #     return current_vol
 
     def control_printing(self):
 
@@ -999,13 +999,13 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             if self.ask_yes_no(message='Move to loading position to activate gripper? (y/n)'):
                 self.move_to_location(location='loading')
             self.load_gripper()
-        self.calibrating = True
         self.move_to_location(location='balance')
-        while self.calibrating:
+
+        while True:
             print('Charge the channel and check that the refuel pressure is sufficient')
             self.control_printing()
             mass_initial = self.wait_for_stable_mass()
-            self.test_print()
+            self.test_print(droplets=20)
             mass_final = self.wait_for_stable_mass()
             mass_diff = mass_final - mass_initial
             print(f'The mass difference is {mass_diff}')
@@ -1016,56 +1016,57 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             else:
                 proportion = (mass_diff / target)
                 print('Current proportion:',proportion)
-                if not self.ask_yes_no(message='Continue calibrating? (y/n)'): return
+                if not self.ask_yes_no(message='Continue calibrating? (y/n)'):
+                    return
                 self.set_pressure((self.pulse_pressure/proportion),(self.refuel_pressure/proportion))
 
+    #
+    # def calibrate_chip(self,target = 6):
+    #     if not self.ask_yes_no(message='Calibrate chip? (y/n)'):
+    #         print('Quitting...')
+    #         section_break()
+    #         return
+    #     self.calibrate_print(target=target)
+    #     input('Place tube back in holder and press enter')
+    #     print('\n---Calibrate the refuel pressure---')
+    #     self.set_pressure(self.pulse_pressure,self.pulse_pressure/8)
+    #     self.charge_chip()
+    #     print('\nCompleted calibration')
+    #     section_break()
+    #     return
 
-    def calibrate_chip(self,target = 6):
-        if not self.ask_yes_no(message='Calibrate chip? (y/n)'):
-            print('Quitting...')
-            section_break()
-            return
-        self.calibrate_print(target=target)
-        input('Place tube back in holder and press enter')
-        print('\n---Calibrate the refuel pressure---')
-        self.set_pressure(self.pulse_pressure,self.pulse_pressure/8)
-        self.charge_chip()
-        print('\nCompleted calibration')
-        section_break()
-        return
-
-    def calibrate_print(self,target = 6):
-        x = []
-        y = []
-        current_print = 2
-        charge_refuel = 0.6
-        tolerance = 0.05
-
-        while True:
-            print('Current measurements:{}\t{}'.format(x,y))
-            current_vol = self.test_pressure(current_print)
-            if current_vol <= target*(1+tolerance) and current_vol >= target*(1-tolerance):
-                print('Volume is within tolerance')
-                return
-            answer = self.ask_yes_no_quit(message='y: add point\tn: repeat test,\tq: quit')
-            if answer == 'quit':
-                print('Quitting calibration')
-                return
-            elif answer == 'yes':
-                print('Adding measurement')
-                x.append(self.pulse_pressure)
-                y.append(current_vol)
-                if len(x) == 1:
-                    current_print = (target/current_vol) * self.pulse_pressure
-                    print('--- Setting pressure to ',current_print)
-                else:
-                    [m,b] = np.polyfit(np.array(x),np.array(y),1)
-                    current_print = (target - b) / m
-                    print('Setting pressure to ',current_print)
-            elif answer == 'no':
-                print('Skipping measurement')
-
-        return
+    # def calibrate_print(self,target = 6):
+    #     x = []
+    #     y = []
+    #     current_print = 2
+    #     charge_refuel = 0.6
+    #     tolerance = 0.05
+    #
+    #     while True:
+    #         print('Current measurements:{}\t{}'.format(x,y))
+    #         current_vol = self.test_pressure(current_print)
+    #         if current_vol <= target*(1+tolerance) and current_vol >= target*(1-tolerance):
+    #             print('Volume is within tolerance')
+    #             return
+    #         answer = self.ask_yes_no_quit(message='y: add point\tn: repeat test,\tq: quit')
+    #         if answer == 'quit':
+    #             print('Quitting calibration')
+    #             return
+    #         elif answer == 'yes':
+    #             print('Adding measurement')
+    #             x.append(self.pulse_pressure)
+    #             y.append(current_vol)
+    #             if len(x) == 1:
+    #                 current_print = (target/current_vol) * self.pulse_pressure
+    #                 print('--- Setting pressure to ',current_print)
+    #             else:
+    #                 [m,b] = np.polyfit(np.array(x),np.array(y),1)
+    #                 current_print = (target - b) / m
+    #                 print('Setting pressure to ',current_print)
+    #         elif answer == 'no':
+    #             print('Skipping measurement')
+    #
+    #     return
 
     # def reset_pipet_aspiration(self):
     #     self.set_pressure(3,self.refuel_pressure)
@@ -1109,12 +1110,13 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
 
     def calibrate_pipet_aspiration(self):
         self.move_to_location(location='tube',height='above_side')
-        input('Tare the tube, place tube in holder, and press Enter ')
+        input('Place tube on the scale and press Enter to record mass ')
+        mass_initial = self.wait_for_stable_mass()
+        input('Return the tube to the holder and press Enter')
         self.move_to_location(location='tube')
         refuel_counter = 0
         hold = True
         self.keyboard_config = 'Pipet Charging'
-        # self.update_monitor()
         print("Press x to aspriate reagent until pipet is nearly full, then press q")
         while hold:
             key = self.get_current_key()
@@ -1132,31 +1134,33 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 else:
                     print("Didn't quit")
         self.move_to_location(location='tube',height='above_side')
-        self.current_volume = ask_for_number(message='Enter mg of liquid aspirated: ')
+
+        input('Place tube on the scale and press Enter to record mass ')
+        mass_final = self.wait_for_stable_mass()
+
+        self.current_volume = mass_initial - mass_final
         self.vol_per_asp = self.current_volume / refuel_counter
+        print('Total volume aspirated:',self.current_volume)
         print('Volume aspirated per pulse:',self.vol_per_asp,'\n')
-        return
+        return mass_final
 
-    def calibrate_pipet_dispense(self,target=18):
-        tolerance = 0.05
-        x = []
-        y = []
-        hold = True
-        current_print = self.pulse_pressure
+    def calibrate_pipet_dispense(self,mass_initial=0,target=18,tolerance=0.05):
+        print('--- Calibrating pipet dispense ---')
+        input('Return the tube to the holder and press Enter')
+        self.move_to_location(location='tube',height='close')
+        print_test_count = 5
 
-        while hold:
-            self.set_pressure(current_print,self.refuel_pressure)
-            self.move_to_location(location='tube',height='close')
-
-            print_test_count = 5
+        while True:
             for i in range(print_test_count):
                 self.pulse_test()
 
             self.move_to_location(location='tube',height='above_side')
-            dispensed = ask_for_number(message='\nEnter mg of liquid dispensed: ')
+            input('Place tube on the scale and press Enter to record mass ')
+            mass_final = self.wait_for_stable_mass()
+            dispensed = mass_final - mass_initial
             self.current_disp_volume = dispensed / print_test_count
+            print('Current dispensed volume:',self.current_disp_volume)
             self.current_volume -= dispensed
-            print(f'Current volume {self.current_volume}')
 
             if self.current_disp_volume <= target*(1+tolerance) and self.current_disp_volume >= target*(1-tolerance):
                 print('Volume is within tolerance, Calibration complete')
@@ -1166,26 +1170,16 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 print(f'Volume per dispense is set to: {self.vol_per_disp}')
                 return
             else:
-                answer = self.ask_yes_no_quit(message='y: add point\tn: repeat test,\tq: quit')
-                if answer == 'quit':
-                    print('Quitting calibration')
+                proportion = (self.current_disp_volume / target)
+                print('Current proportion:',proportion)
+                if not self.ask_yes_no(message='Continue calibrating? (y/n)'):
                     return
-                elif answer == 'yes':
-                    print('Adding measurement')
-                    x.append(self.pulse_pressure)
-                    y.append(self.current_disp_volume)
-                elif answer == 'no':
-                    print('Skipping measurement')
-                if len(x) == 1:
-                    if self.current_disp_volume > target:
-                        current_print = self.pulse_pressure - 0.25
-                    else:
-                        current_print = self.pulse_pressure + 0.25
-                    print('--- Setting pressure to ',current_print)
-                else:
-                    [m,b] = np.polyfit(np.array(x),np.array(y),1)
-                    current_print = (target - b) / m
-                    print('Setting pressure to ',current_print)
+                self.set_pressure((self.pulse_pressure/proportion),self.refuel_pressure)
+                input('Return the tube to the holder and press Enter')
+                self.move_to_location(location='tube',height='close')
+                mass_initial = mass_final
+
+
 
     def calibrate_pipet(self,target=18):
         if not self.ask_yes_no(message='Calibrate pipet? (y/n)'):
@@ -1194,92 +1188,148 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         if self.mode != 'p1000':
             print('Must be in p1000 mode to execute this calibration')
             return
-        self.calibrate_pipet_aspiration()
-        self.calibrate_pipet_dispense(target=target)
+        if self.gripper == 'inactive':
+            if self.ask_yes_no(message='Move to loading position to activate gripper? (y/n)'):
+                self.move_to_location(location='loading')
+            self.load_gripper()
+
+        mass_final = self.calibrate_pipet_aspiration()
+        self.calibrate_pipet_dispense(mass_initial=mass_final,target=target)
         return
-
-    def check_pressures(self):
-        self.move_to_location(location='tube')
-        print('\nCheck the refuel pressure\n')
-        hold = True
-        while hold:
-            try:
-                c = msvcrt.getch().decode()
-                print(c)
-                valid = True
-            except:
-                print('Not a valid input')
-                valid = False
-            if valid:
-                if c == "x":
-                    self.refuel_test()
-                elif c == "c":
-                    self.pulse_test()
-                elif c == 'z':
-                    self.print_droplets_current(10)
-                    print('completed test print')
-
-                elif c == '1':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
-                elif c == '2':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
-                elif c == '3':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
-                elif c == '4':
-                    self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
-
-                elif c == '6':
-                    self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
-                elif c == '7':
-                    self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
-                elif c == '8':
-                    self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
-                elif c == '9':
-                    self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
-
-                elif c == "q":
-                    if self.ask_yes_no(message='Test droplet volume? (y/n)'):
-                        hold = False
-                    else:
-                        print("Didn't quit")
-                else:
-                    print("Not a valid input")
-
-        # chip.real_refuel_pressure = self.refuel_pressure
-        print('Adjusted refuel:',self.refuel_pressure)
-        print('Adjusted print:',self.pulse_pressure)
-
-        self.move_to_location(location='tube',height='above')
-        input('\nZero the scale and press Enter\n')
-        self.move_to_location(location='tube')
-        droplet_count = 100
-        print("Printing {} droplets...".format(droplet_count))
-        for i in range(5):
-            self.print_droplets_current(20)
-            time.sleep(0.5)
-        self.move_to_location(location='tube',height='above')
-
-        test_mass = float(input('\nType in the mass press Enter\n'))
-        # test_volume = test_mass / chip.density
-
-        # chip.set_droplet_volume((test_volume / droplet_count) *1000)
-
-        # print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
-
-        if self.ask_yes_no(message='Repeat test? (y/n)'):
-            # self.move_to_location(location='tube')
-            self.check_pressures()
-            return
-        else:
-            print('Calibration complete')
-            return
-        return
+    #
+    # def calibrate_pipet_dispense(self,target=18):
+    #     tolerance = 0.05
+    #     x = []
+    #     y = []
+    #     hold = True
+    #     current_print = self.pulse_pressure
+    #
+    #     while hold:
+    #         self.set_pressure(current_print,self.refuel_pressure)
+    #         self.move_to_location(location='tube',height='close')
+    #
+    #         print_test_count = 5
+    #         for i in range(print_test_count):
+    #             self.pulse_test()
+    #
+    #         self.move_to_location(location='tube',height='above_side')
+    #         dispensed = ask_for_number(message='\nEnter mg of liquid dispensed: ')
+    #         self.current_disp_volume = dispensed / print_test_count
+    #         self.current_volume -= dispensed
+    #         print(f'Current volume {self.current_volume}')
+    #
+    #         if self.current_disp_volume <= target*(1+tolerance) and self.current_disp_volume >= target*(1-tolerance):
+    #             print('Volume is within tolerance, Calibration complete')
+    #             self.calibrated = True
+    #             self.tracking_volume = True
+    #             self.vol_per_disp = target
+    #             print(f'Volume per dispense is set to: {self.vol_per_disp}')
+    #             return
+    #         else:
+    #             answer = self.ask_yes_no_quit(message='y: add point\tn: repeat test,\tq: quit')
+    #             if answer == 'quit':
+    #                 print('Quitting calibration')
+    #                 return
+    #             elif answer == 'yes':
+    #                 print('Adding measurement')
+    #                 x.append(self.pulse_pressure)
+    #                 y.append(self.current_disp_volume)
+    #             elif answer == 'no':
+    #                 print('Skipping measurement')
+    #             if len(x) == 1:
+    #                 if self.current_disp_volume > target:
+    #                     current_print = self.pulse_pressure - 0.25
+    #                 else:
+    #                     current_print = self.pulse_pressure + 0.25
+    #                 print('--- Setting pressure to ',current_print)
+    #             else:
+    #                 [m,b] = np.polyfit(np.array(x),np.array(y),1)
+    #                 current_print = (target - b) / m
+    #                 print('Setting pressure to ',current_print)
 
 
-    def quick_eject(self):
-        print('Quick ejecting')
-        print_droplets(self.frequency,0,0,10)
-        return
+    # def check_pressures(self):
+    #     self.move_to_location(location='tube')
+    #     print('\nCheck the refuel pressure\n')
+    #     hold = True
+    #     while hold:
+    #         try:
+    #             c = msvcrt.getch().decode()
+    #             print(c)
+    #             valid = True
+    #         except:
+    #             print('Not a valid input')
+    #             valid = False
+    #         if valid:
+    #             if c == "x":
+    #                 self.refuel_test()
+    #             elif c == "c":
+    #                 self.pulse_test()
+    #             elif c == 'z':
+    #                 self.print_droplets_current(10)
+    #                 print('completed test print')
+    #
+    #             elif c == '1':
+    #                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
+    #             elif c == '2':
+    #                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.01)
+    #             elif c == '3':
+    #                 self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.01)
+    #             elif c == '4':
+    #                 self.set_pressure(self.pulse_pressure,self.refuel_pressure + 0.1)
+    #
+    #             elif c == '6':
+    #                 self.set_pressure(self.pulse_pressure - 0.1,self.refuel_pressure)
+    #             elif c == '7':
+    #                 self.set_pressure(self.pulse_pressure - 0.01,self.refuel_pressure)
+    #             elif c == '8':
+    #                 self.set_pressure(self.pulse_pressure + 0.01,self.refuel_pressure)
+    #             elif c == '9':
+    #                 self.set_pressure(self.pulse_pressure + 0.1,self.refuel_pressure)
+    #
+    #             elif c == "q":
+    #                 if self.ask_yes_no(message='Test droplet volume? (y/n)'):
+    #                     hold = False
+    #                 else:
+    #                     print("Didn't quit")
+    #             else:
+    #                 print("Not a valid input")
+    #
+    #     # chip.real_refuel_pressure = self.refuel_pressure
+    #     print('Adjusted refuel:',self.refuel_pressure)
+    #     print('Adjusted print:',self.pulse_pressure)
+    #
+    #     self.move_to_location(location='tube',height='above')
+    #     input('\nZero the scale and press Enter\n')
+    #     self.move_to_location(location='tube')
+    #     droplet_count = 100
+    #     print("Printing {} droplets...".format(droplet_count))
+    #     for i in range(5):
+    #         self.print_droplets_current(20)
+    #         time.sleep(0.5)
+    #     self.move_to_location(location='tube',height='above')
+    #
+    #     test_mass = float(input('\nType in the mass press Enter\n'))
+    #     # test_volume = test_mass / chip.density
+    #
+    #     # chip.set_droplet_volume((test_volume / droplet_count) *1000)
+    #
+    #     # print('\nCurrent droplet volume = {}\n'.format(chip.real_volume))
+    #
+    #     if self.ask_yes_no(message='Repeat test? (y/n)'):
+    #         # self.move_to_location(location='tube')
+    #         self.check_pressures()
+    #         return
+    #     else:
+    #         print('Calibration complete')
+    #         return
+    #     return
+
+    #
+    # def quick_eject(self):
+    #     print('Quick ejecting')
+    #     print_droplets(self.frequency,0,0,10)
+    #     return
 
 
 
