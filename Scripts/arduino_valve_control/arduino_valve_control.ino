@@ -149,14 +149,19 @@ void loop() {
     digitalWrite(valveP, LOW);
     digitalWrite(valveR, LOW);
     pulseswitch = 0;
-    delay(100);
-    Serial.write('C');
+//    delay(100);
+//    Serial.write('C');
     if (pulsecount == 0){
       Serial.write('N');
     }
-    if (Freq == 0){
+    else if (Freq == 0){
       Serial.write('F');
     }
+    else{
+      Serial.write('C');
+    }
+    
+
     //delay(100);
     //Serial.write('C');
     //delay(100);

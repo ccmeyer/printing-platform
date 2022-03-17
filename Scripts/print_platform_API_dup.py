@@ -18,9 +18,12 @@ from pynput.keyboard import Key
 from pyautogui import press
 import datetime
 import shutil
+import serial
+
 
 from threading import Thread
 from time import sleep
+import ipdb
 
 import datetime
 
@@ -32,6 +35,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     def __init__(self):
         print('Created platform instance')
         self.start_tracker()
+
         self.current_key = False
         self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
         # self.sim = False
@@ -45,6 +49,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.queue.put(self.storage)
 
         self.print_log = []
+        self.mass = 'unknown'
         self.mass_record = []
         self.mass_diff = 0
         self.stable_mass = 'not_stable'
@@ -55,8 +60,9 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.level_tracker = Process(target=ParallelProcess.level_tracker, args=[self.queue,self.storage,1])
             self.level_tracker.start()
 
-        self.use_balance = True
+        self.use_balance = False
         if self.use_balance == True:
+            # self.serial = serial.Serial(port='COM7', baudrate=9600, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
             self.balance_tracker = Process(target=ParallelProcess.balance_tracker, args=[self.queue,self.storage,1])
             self.balance_tracker.start()
 
@@ -74,22 +80,22 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
 
     def update_monitor(self):
         while True:
-            self.storage = ParallelProcess.get_recent(self.queue,self.storage)
+            # self.storage = ParallelProcess.get_recent(self.queue,self.storage)
             self.monitor.info_0.set(str(self.mode))
             self.monitor.info_1.set(str(self.current_row))
             self.monitor.info_2.set(str(self.current_column))
             self.monitor.info_3.set(str(self.keyboard_config))
             self.monitor.info_4.set(str(self.storage.level))
-            self.monitor.info_5.set(str(self.storage.mass))
+            self.monitor.info_5.set(str(self.mass))
             self.monitor.info_6.set(str(round(self.real_refuel,3)))
             self.monitor.info_7.set(str(round(self.real_pulse,3)))
 
-            if self.storage.mass != 'unknown':
+            if self.mass != 'unknown':
                 if len(self.mass_record) < 10:
-                    self.mass_record.append(self.storage.mass)
+                    self.mass_record.append(self.mass)
                 else:
                     self.mass_record = self.mass_record[1:]
-                    self.mass_record.append(self.storage.mass)
+                    self.mass_record.append(self.mass)
                     self.mass_diff = np.mean([self.mass_record[i]-self.mass_record[0] for i in range(len(self.mass_record))])
                     if self.mass_diff < 0.05:
                         self.stable_mass = round(np.mean(self.mass_record),2)
@@ -265,13 +271,56 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         else:
             return paths
 
+    def initiate_balance(self,port):
+        try:
+            self.balance = serial.Serial(port=port, baudrate=9600, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE)
+            print('Balance Connected')
+            self.masses = []
+            self.mass_counter = 0
+            self.mass_thread = Thread(target = self.update_mass,args=[])
+            self.mass_thread.daemon = True
+            self.mass_thread.start()
+        except:
+            print('\n---Balance unable to connect\n')
+
+    def update_mass(self):
+        print('\n- Started mass thread')
+        while(True):
+            if self.terminate == True:
+                print('quitting the Balance update thread')
+                break
+            try:
+                if self.balance.in_waiting > 0:
+                    data = self.balance.readline()
+                    try:
+                        data = data.decode("ASCII")
+                        mass = float(data[-11:].strip()[:-2])
+                        if len(self.masses) < 5:
+                            self.masses.append(mass)
+                        else:
+                            self.masses = self.masses[1:]
+                            self.masses.append(mass)
+                        self.mass = round(np.mean(self.masses)*1000,1)
+                    except:
+                        continue
+
+
+            except:
+                self.mass_counter += 1
+                if self.mass_counter > 50:
+                    self.mass = 'unknown'
+                    self.mass_counter = 0
+            time.sleep(0.1)
+
+
     def initiate_all(self):
         section_break()
         print('Initializing all components')
         if not self.sim:
             self.init_pressure()
-            self.init_dobot(self.default_settings['Dobot_port'])
+            self.dType = self.init_dobot(self.default_settings['Dobot_port'])
             self.init_ard(self.default_settings['Arduino_port'])
+            self.initiate_balance('COM7')
         print('All components are connected')
         import matplotlib.pyplot as plt
         global plt
@@ -293,6 +342,9 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         if not self.sim:
             self.pressure_thread.join()
             print('pressure joined')
+
+            self.mass_thread.join()
+            print('mass joined')
             self.disconnect_dobot()
             print('dobot')
 
@@ -465,14 +517,16 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.move_to_location(location='pause')
         arr = pd.read_csv(chosen_path)
         droplets_printed = 0
+        # self.dType.SetPTPCommonParams(self.api, 50, 50, isQueued = 1)
         for index, line in arr.iterrows():
             if droplets_printed > 2000:
                 self.refill_chip()
                 droplets_printed = 0
             print('\nOn {} out of {}-droplets:{}'.format(index+1,len(arr),droplets_printed))
-            time.sleep(0.1)
+            # time.sleep(0.1)
             if self.check_for_pause():
                 if self.ask_yes_no(message="Quit print? (y/n)"):
+                    self.dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
                     print('Quitting\n')
                     return
                 if self.ask_yes_no(message="Refill chip? (y/n)"):
@@ -493,6 +547,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             arr.iloc[index+1:].to_csv(partial_path)
 
         print('\nPrint array complete\n')
+        self.dType.SetPTPCommonParams(self.api, 20, 20, isQueued = 1)
         dir_path = r'{}\completed_arrays\\'.format(experiment_folder)
         print('Dir:',dir_path)
         if not os.path.exists(dir_path):
@@ -792,7 +847,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 print('Completed the fix for the missed signal')
                 break
         print(' - Count: ',i)
-        time.sleep(0.1)
+        # time.sleep(0.1)
         after = self.read_ard()
 
         if 'N' in after or 'F' in after:

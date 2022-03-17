@@ -60,7 +60,7 @@ class Robot:
             print('current_coords:', self.current_coords)
             # self.current_coords = self.calibration_data['loading']
         self.gripper = 'inactive'
-        return
+        return dType
 
     def disconnect_dobot(self):
         if not self.sim:
