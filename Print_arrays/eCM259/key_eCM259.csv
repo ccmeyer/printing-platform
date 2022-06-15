@@ -1,0 +1,361 @@
+well_name,GFP,Liposome_name,Liposome_conc,combo
+A1,0.25,5% Ni-NTA,0.96,Standard
+A1,0.25,5% Ni-NTA,0.96,Standard
+A1,0.25,5% Ni-NTA,0.96,Standard
+A2,1.0,20% Ni-NTA,0.96,Standard
+A2,1.0,20% Ni-NTA,0.96,Standard
+A2,1.0,20% Ni-NTA,0.96,Standard
+A3,1.0,5% Ni-NTA,3.0,Standard
+A3,1.0,5% Ni-NTA,3.0,Standard
+A3,1.0,5% Ni-NTA,3.0,Standard
+A4,4.8,DOPC,3.0,Standard
+A4,4.8,DOPC,3.0,Standard
+A4,4.8,DOPC,3.0,Standard
+A5,1.0,DOPC,3.0,Standard
+A5,1.0,DOPC,3.0,Standard
+A5,1.0,DOPC,3.0,Standard
+A6,0.25,DOPC,3.0,Standard
+A6,0.25,DOPC,3.0,Standard
+A6,0.25,DOPC,3.0,Standard
+A7,1.0,DOPC,0.96,Standard
+A7,1.0,DOPC,0.96,Standard
+A7,1.0,DOPC,0.96,Standard
+A8,0.25,DOPC,2.04,Standard
+A8,0.25,DOPC,2.04,Standard
+A8,0.25,DOPC,2.04,Standard
+B1,4.8,DOPC,0.96,Standard
+B1,4.8,DOPC,0.96,Standard
+B1,4.8,DOPC,0.96,Standard
+B2,4.8,20% Ni-NTA,3.0,Standard
+B2,4.8,20% Ni-NTA,3.0,Standard
+B2,4.8,20% Ni-NTA,3.0,Standard
+B3,0.0,No Lipo,0.0,Standard
+B3,0.0,No Lipo,0.0,Standard
+B3,0.0,No Lipo,0.0,Standard
+B4,4.8,5% Ni-NTA,3.0,Standard
+B4,4.8,5% Ni-NTA,3.0,Standard
+B4,4.8,5% Ni-NTA,3.0,Standard
+B5,0.0,No Lipo,0.0,Standard
+B5,0.0,No Lipo,0.0,Standard
+B5,0.0,No Lipo,0.0,Standard
+B6,0.25,5% Ni-NTA,2.04,Standard
+B6,0.25,5% Ni-NTA,2.04,Standard
+B6,0.25,5% Ni-NTA,2.04,Standard
+B7,0.0,DOPC,0.96,Standard
+B7,0.0,DOPC,0.96,Standard
+B7,0.0,DOPC,0.96,Standard
+B8,0.25,DOPC,2.04,Standard
+B8,0.25,DOPC,2.04,Standard
+B8,0.25,DOPC,2.04,Standard
+C1,0.0,5% Ni-NTA,2.04,Standard
+C1,0.0,5% Ni-NTA,2.04,Standard
+C1,0.0,5% Ni-NTA,2.04,Standard
+C2,4.8,5% Ni-NTA,0.96,Standard
+C2,4.8,5% Ni-NTA,0.96,Standard
+C2,4.8,5% Ni-NTA,0.96,Standard
+C3,0.25,DOPC,3.0,Standard
+C3,0.25,DOPC,3.0,Standard
+C3,0.25,DOPC,3.0,Standard
+C4,4.8,DOPC,3.0,Standard
+C4,4.8,DOPC,3.0,Standard
+C4,4.8,DOPC,3.0,Standard
+C5,4.8,20% Ni-NTA,0.96,Standard
+C5,4.8,20% Ni-NTA,0.96,Standard
+C5,4.8,20% Ni-NTA,0.96,Standard
+C6,4.8,20% Ni-NTA,3.0,Standard
+C6,4.8,20% Ni-NTA,3.0,Standard
+C6,4.8,20% Ni-NTA,3.0,Standard
+C7,0.25,20% Ni-NTA,3.0,Standard
+C7,0.25,20% Ni-NTA,3.0,Standard
+C7,0.25,20% Ni-NTA,3.0,Standard
+C8,0.0,20% Ni-NTA,3.0,Standard
+C8,0.0,20% Ni-NTA,3.0,Standard
+C8,0.0,20% Ni-NTA,3.0,Standard
+D1,0.25,DOPC,2.04,Standard
+D1,0.25,DOPC,2.04,Standard
+D1,0.25,DOPC,2.04,Standard
+D2,1.0,20% Ni-NTA,3.0,Standard
+D2,1.0,20% Ni-NTA,3.0,Standard
+D2,1.0,20% Ni-NTA,3.0,Standard
+D3,1.0,No Lipo,0.0,Standard
+D3,1.0,No Lipo,0.0,Standard
+D3,1.0,No Lipo,0.0,Standard
+D4,1.0,20% Ni-NTA,3.0,Standard
+D4,1.0,20% Ni-NTA,3.0,Standard
+D4,1.0,20% Ni-NTA,3.0,Standard
+D5,1.0,5% Ni-NTA,0.96,Standard
+D5,1.0,5% Ni-NTA,0.96,Standard
+D5,1.0,5% Ni-NTA,0.96,Standard
+D6,0.25,5% Ni-NTA,3.0,Standard
+D6,0.25,5% Ni-NTA,3.0,Standard
+D6,0.25,5% Ni-NTA,3.0,Standard
+D7,1.0,5% Ni-NTA,3.0,Standard
+D7,1.0,5% Ni-NTA,3.0,Standard
+D7,1.0,5% Ni-NTA,3.0,Standard
+D8,0.25,No Lipo,0.0,Standard
+D8,0.25,No Lipo,0.0,Standard
+D8,0.25,No Lipo,0.0,Standard
+E1,4.8,DOPC,3.0,Standard
+E1,4.8,DOPC,3.0,Standard
+E1,4.8,DOPC,3.0,Standard
+E2,0.0,5% Ni-NTA,3.0,Standard
+E2,0.0,5% Ni-NTA,3.0,Standard
+E2,0.0,5% Ni-NTA,3.0,Standard
+E3,1.0,No Lipo,0.0,Standard
+E3,1.0,No Lipo,0.0,Standard
+E3,1.0,No Lipo,0.0,Standard
+E4,4.8,5% Ni-NTA,2.04,Standard
+E4,4.8,5% Ni-NTA,2.04,Standard
+E4,4.8,5% Ni-NTA,2.04,Standard
+E5,0.25,20% Ni-NTA,2.04,Standard
+E5,0.25,20% Ni-NTA,2.04,Standard
+E5,0.25,20% Ni-NTA,2.04,Standard
+E6,0.0,20% Ni-NTA,2.04,Standard
+E6,0.0,20% Ni-NTA,2.04,Standard
+E6,0.0,20% Ni-NTA,2.04,Standard
+E7,0.0,DOPC,2.04,Standard
+E7,0.0,DOPC,2.04,Standard
+E7,0.0,DOPC,2.04,Standard
+E8,0.0,5% Ni-NTA,3.0,Standard
+E8,0.0,5% Ni-NTA,3.0,Standard
+E8,0.0,5% Ni-NTA,3.0,Standard
+F1,0.25,5% Ni-NTA,0.96,Standard
+F1,0.25,5% Ni-NTA,0.96,Standard
+F1,0.25,5% Ni-NTA,0.96,Standard
+F2,1.0,DOPC,0.96,Standard
+F2,1.0,DOPC,0.96,Standard
+F2,1.0,DOPC,0.96,Standard
+F3,4.8,5% Ni-NTA,3.0,Standard
+F3,4.8,5% Ni-NTA,3.0,Standard
+F3,4.8,5% Ni-NTA,3.0,Standard
+F4,1.0,5% Ni-NTA,2.04,Standard
+F4,1.0,5% Ni-NTA,2.04,Standard
+F4,1.0,5% Ni-NTA,2.04,Standard
+F5,1.0,DOPC,0.96,Standard
+F5,1.0,DOPC,0.96,Standard
+F5,1.0,DOPC,0.96,Standard
+F6,4.8,DOPC,2.04,Standard
+F6,4.8,DOPC,2.04,Standard
+F6,4.8,DOPC,2.04,Standard
+F7,1.0,5% Ni-NTA,2.04,Standard
+F7,1.0,5% Ni-NTA,2.04,Standard
+F7,1.0,5% Ni-NTA,2.04,Standard
+F8,4.8,20% Ni-NTA,2.04,Standard
+F8,4.8,20% Ni-NTA,2.04,Standard
+F8,4.8,20% Ni-NTA,2.04,Standard
+G1,0.25,DOPC,0.96,Standard
+G1,0.25,DOPC,0.96,Standard
+G1,0.25,DOPC,0.96,Standard
+G2,0.25,5% Ni-NTA,0.96,Standard
+G2,0.25,5% Ni-NTA,0.96,Standard
+G2,0.25,5% Ni-NTA,0.96,Standard
+G3,0.25,5% Ni-NTA,3.0,Standard
+G3,0.25,5% Ni-NTA,3.0,Standard
+G3,0.25,5% Ni-NTA,3.0,Standard
+G4,4.8,5% Ni-NTA,2.04,Standard
+G4,4.8,5% Ni-NTA,2.04,Standard
+G4,4.8,5% Ni-NTA,2.04,Standard
+G5,0.0,DOPC,3.0,Standard
+G5,0.0,DOPC,3.0,Standard
+G5,0.0,DOPC,3.0,Standard
+G6,1.0,20% Ni-NTA,3.0,Standard
+G6,1.0,20% Ni-NTA,3.0,Standard
+G6,1.0,20% Ni-NTA,3.0,Standard
+G7,4.8,20% Ni-NTA,0.96,Standard
+G7,4.8,20% Ni-NTA,0.96,Standard
+G7,4.8,20% Ni-NTA,0.96,Standard
+G8,0.0,DOPC,3.0,Standard
+G8,0.0,DOPC,3.0,Standard
+G8,0.0,DOPC,3.0,Standard
+H1,0.0,No Lipo,0.0,Standard
+H1,0.0,No Lipo,0.0,Standard
+H1,0.0,No Lipo,0.0,Standard
+H2,4.8,20% Ni-NTA,2.04,Standard
+H2,4.8,20% Ni-NTA,2.04,Standard
+H2,4.8,20% Ni-NTA,2.04,Standard
+H3,4.8,DOPC,0.96,Standard
+H3,4.8,DOPC,0.96,Standard
+H3,4.8,DOPC,0.96,Standard
+H4,0.0,5% Ni-NTA,3.0,Standard
+H4,0.0,5% Ni-NTA,3.0,Standard
+H4,0.0,5% Ni-NTA,3.0,Standard
+H5,4.8,No Lipo,0.0,Standard
+H5,4.8,No Lipo,0.0,Standard
+H5,4.8,No Lipo,0.0,Standard
+H6,1.0,DOPC,2.04,Standard
+H6,1.0,DOPC,2.04,Standard
+H6,1.0,DOPC,2.04,Standard
+H7,4.8,No Lipo,0.0,Standard
+H7,4.8,No Lipo,0.0,Standard
+H7,4.8,No Lipo,0.0,Standard
+H8,0.25,20% Ni-NTA,0.96,Standard
+H8,0.25,20% Ni-NTA,0.96,Standard
+H8,0.25,20% Ni-NTA,0.96,Standard
+I1,0.0,5% Ni-NTA,2.04,Standard
+I1,0.0,5% Ni-NTA,2.04,Standard
+I1,0.0,5% Ni-NTA,2.04,Standard
+I2,1.0,20% Ni-NTA,2.04,Standard
+I2,1.0,20% Ni-NTA,2.04,Standard
+I2,1.0,20% Ni-NTA,2.04,Standard
+I3,0.0,DOPC,2.04,Standard
+I3,0.0,DOPC,2.04,Standard
+I3,0.0,DOPC,2.04,Standard
+I4,1.0,5% Ni-NTA,3.0,Standard
+I4,1.0,5% Ni-NTA,3.0,Standard
+I4,1.0,5% Ni-NTA,3.0,Standard
+I5,4.8,No Lipo,0.0,Standard
+I5,4.8,No Lipo,0.0,Standard
+I5,4.8,No Lipo,0.0,Standard
+I6,1.0,DOPC,2.04,Standard
+I6,1.0,DOPC,2.04,Standard
+I6,1.0,DOPC,2.04,Standard
+I7,0.0,20% Ni-NTA,2.04,Standard
+I7,0.0,20% Ni-NTA,2.04,Standard
+I7,0.0,20% Ni-NTA,2.04,Standard
+J1,1.0,20% Ni-NTA,0.96,Standard
+J1,1.0,20% Ni-NTA,0.96,Standard
+J1,1.0,20% Ni-NTA,0.96,Standard
+J2,4.8,5% Ni-NTA,0.96,Standard
+J2,4.8,5% Ni-NTA,0.96,Standard
+J2,4.8,5% Ni-NTA,0.96,Standard
+J3,4.8,DOPC,2.04,Standard
+J3,4.8,DOPC,2.04,Standard
+J3,4.8,DOPC,2.04,Standard
+J4,0.0,20% Ni-NTA,0.96,Standard
+J4,0.0,20% Ni-NTA,0.96,Standard
+J4,0.0,20% Ni-NTA,0.96,Standard
+J5,1.0,No Lipo,0.0,Standard
+J5,1.0,No Lipo,0.0,Standard
+J5,1.0,No Lipo,0.0,Standard
+J6,0.25,20% Ni-NTA,3.0,Standard
+J6,0.25,20% Ni-NTA,3.0,Standard
+J6,0.25,20% Ni-NTA,3.0,Standard
+J7,0.0,5% Ni-NTA,0.96,Standard
+J7,0.0,5% Ni-NTA,0.96,Standard
+J7,0.0,5% Ni-NTA,0.96,Standard
+K1,0.25,5% Ni-NTA,2.04,Standard
+K1,0.25,5% Ni-NTA,2.04,Standard
+K1,0.25,5% Ni-NTA,2.04,Standard
+K2,1.0,5% Ni-NTA,0.96,Standard
+K2,1.0,5% Ni-NTA,0.96,Standard
+K2,1.0,5% Ni-NTA,0.96,Standard
+K3,0.0,DOPC,0.96,Standard
+K3,0.0,DOPC,0.96,Standard
+K3,0.0,DOPC,0.96,Standard
+K4,0.25,20% Ni-NTA,0.96,Standard
+K4,0.25,20% Ni-NTA,0.96,Standard
+K4,0.25,20% Ni-NTA,0.96,Standard
+K5,1.0,DOPC,3.0,Standard
+K5,1.0,DOPC,3.0,Standard
+K5,1.0,DOPC,3.0,Standard
+K6,0.25,20% Ni-NTA,2.04,Standard
+K6,0.25,20% Ni-NTA,2.04,Standard
+K6,0.25,20% Ni-NTA,2.04,Standard
+K7,0.0,5% Ni-NTA,0.96,Standard
+K7,0.0,5% Ni-NTA,0.96,Standard
+K7,0.0,5% Ni-NTA,0.96,Standard
+L1,0.0,5% Ni-NTA,2.04,Standard
+L1,0.0,5% Ni-NTA,2.04,Standard
+L1,0.0,5% Ni-NTA,2.04,Standard
+L2,4.8,5% Ni-NTA,3.0,Standard
+L2,4.8,5% Ni-NTA,3.0,Standard
+L2,4.8,5% Ni-NTA,3.0,Standard
+L3,1.0,5% Ni-NTA,0.96,Standard
+L3,1.0,5% Ni-NTA,0.96,Standard
+L3,1.0,5% Ni-NTA,0.96,Standard
+L4,0.0,5% Ni-NTA,0.96,Standard
+L4,0.0,5% Ni-NTA,0.96,Standard
+L4,0.0,5% Ni-NTA,0.96,Standard
+L5,4.8,20% Ni-NTA,2.04,Standard
+L5,4.8,20% Ni-NTA,2.04,Standard
+L5,4.8,20% Ni-NTA,2.04,Standard
+L6,0.25,5% Ni-NTA,3.0,Standard
+L6,0.25,5% Ni-NTA,3.0,Standard
+L6,0.25,5% Ni-NTA,3.0,Standard
+L7,1.0,DOPC,3.0,Standard
+L7,1.0,DOPC,3.0,Standard
+L7,1.0,DOPC,3.0,Standard
+M1,1.0,DOPC,2.04,Standard
+M1,1.0,DOPC,2.04,Standard
+M1,1.0,DOPC,2.04,Standard
+M2,0.0,DOPC,3.0,Standard
+M2,0.0,DOPC,3.0,Standard
+M2,0.0,DOPC,3.0,Standard
+M3,0.25,20% Ni-NTA,2.04,Standard
+M3,0.25,20% Ni-NTA,2.04,Standard
+M3,0.25,20% Ni-NTA,2.04,Standard
+M4,0.0,20% Ni-NTA,3.0,Standard
+M4,0.0,20% Ni-NTA,3.0,Standard
+M4,0.0,20% Ni-NTA,3.0,Standard
+M5,1.0,20% Ni-NTA,2.04,Standard
+M5,1.0,20% Ni-NTA,2.04,Standard
+M5,1.0,20% Ni-NTA,2.04,Standard
+M6,0.25,DOPC,0.96,Standard
+M6,0.25,DOPC,0.96,Standard
+M6,0.25,DOPC,0.96,Standard
+M7,0.0,20% Ni-NTA,0.96,Standard
+M7,0.0,20% Ni-NTA,0.96,Standard
+M7,0.0,20% Ni-NTA,0.96,Standard
+N1,4.8,5% Ni-NTA,0.96,Standard
+N1,4.8,5% Ni-NTA,0.96,Standard
+N1,4.8,5% Ni-NTA,0.96,Standard
+N2,0.25,No Lipo,0.0,Standard
+N2,0.25,No Lipo,0.0,Standard
+N2,0.25,No Lipo,0.0,Standard
+N3,1.0,20% Ni-NTA,0.96,Standard
+N3,1.0,20% Ni-NTA,0.96,Standard
+N3,1.0,20% Ni-NTA,0.96,Standard
+N4,0.0,20% Ni-NTA,3.0,Standard
+N4,0.0,20% Ni-NTA,3.0,Standard
+N4,0.0,20% Ni-NTA,3.0,Standard
+N5,0.0,DOPC,2.04,Standard
+N5,0.0,DOPC,2.04,Standard
+N5,0.0,DOPC,2.04,Standard
+N6,0.25,DOPC,3.0,Standard
+N6,0.25,DOPC,3.0,Standard
+N6,0.25,DOPC,3.0,Standard
+N7,0.25,DOPC,0.96,Standard
+N7,0.25,DOPC,0.96,Standard
+N7,0.25,DOPC,0.96,Standard
+O1,0.0,DOPC,0.96,Standard
+O1,0.0,DOPC,0.96,Standard
+O1,0.0,DOPC,0.96,Standard
+O2,4.8,20% Ni-NTA,0.96,Standard
+O2,4.8,20% Ni-NTA,0.96,Standard
+O2,4.8,20% Ni-NTA,0.96,Standard
+O3,4.8,DOPC,2.04,Standard
+O3,4.8,DOPC,2.04,Standard
+O3,4.8,DOPC,2.04,Standard
+O4,1.0,5% Ni-NTA,2.04,Standard
+O4,1.0,5% Ni-NTA,2.04,Standard
+O4,1.0,5% Ni-NTA,2.04,Standard
+O5,1.0,20% Ni-NTA,2.04,Standard
+O5,1.0,20% Ni-NTA,2.04,Standard
+O5,1.0,20% Ni-NTA,2.04,Standard
+O6,4.8,5% Ni-NTA,2.04,Standard
+O6,4.8,5% Ni-NTA,2.04,Standard
+O6,4.8,5% Ni-NTA,2.04,Standard
+O7,0.0,20% Ni-NTA,0.96,Standard
+O7,0.0,20% Ni-NTA,0.96,Standard
+O7,0.0,20% Ni-NTA,0.96,Standard
+P1,0.25,20% Ni-NTA,0.96,Standard
+P1,0.25,20% Ni-NTA,0.96,Standard
+P1,0.25,20% Ni-NTA,0.96,Standard
+P2,4.8,DOPC,0.96,Standard
+P2,4.8,DOPC,0.96,Standard
+P2,4.8,DOPC,0.96,Standard
+P3,0.25,No Lipo,0.0,Standard
+P3,0.25,No Lipo,0.0,Standard
+P3,0.25,No Lipo,0.0,Standard
+P4,0.0,20% Ni-NTA,2.04,Standard
+P4,0.0,20% Ni-NTA,2.04,Standard
+P4,0.0,20% Ni-NTA,2.04,Standard
+P5,4.8,20% Ni-NTA,3.0,Standard
+P5,4.8,20% Ni-NTA,3.0,Standard
+P5,4.8,20% Ni-NTA,3.0,Standard
+P6,0.25,5% Ni-NTA,2.04,Standard
+P6,0.25,5% Ni-NTA,2.04,Standard
+P6,0.25,5% Ni-NTA,2.04,Standard
+P7,0.25,20% Ni-NTA,3.0,Standard
+P7,0.25,20% Ni-NTA,3.0,Standard
+P7,0.25,20% Ni-NTA,3.0,Standard
