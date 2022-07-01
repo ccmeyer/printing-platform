@@ -615,7 +615,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             else:
                 new_path = ''.join([chosen_path[:-4],'-partial','.csv'])
             print(new_path)
-            arr.iloc[index:].to_csv(new_path)
+            arr.iloc[index+1:].to_csv(new_path)
 
         print('\nPrint array complete\n')
         os.remove(new_path)
@@ -848,7 +848,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         delay = (count/freq)
         extra = self.read_ard()
 
-        self.print_command(freq,pulse_width,refuel_width,count)
+        self.print_command(freq,pulse_width,refuel_width,int(count))
 
         time.sleep(delay)
         current = self.read_ard()
