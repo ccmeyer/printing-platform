@@ -5,6 +5,7 @@ from utils import *
 from multiprocessing import Process, Queue
 
 import time
+import math
 import sys
 import msvcrt
 import json
@@ -578,7 +579,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         chosen_path, quit = select_options(all_arr, message='Select one of the following arrays:',trim=True)
         if quit: return
 
-        num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
+        try:
+            num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
+        except:
+            self.vol_per_asp = 60
+            num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
         print(f'Filling tip from {self.current_volume}...{num_asps}')
         self.move_to_location(location='tube')
         self.print_droplets(self.frequency,0,self.refuel_width ,num_asps,aspiration=True)
@@ -591,7 +596,7 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                     print('Quitting\n')
                     return
             if self.current_volume < self.min_volume:
-                num_asps = int(round(((self.max_volume - self.current_volume) / self.vol_per_asp),0))
+                num_asps = int(math.ceil(((self.max_volume - self.current_volume) / self.vol_per_asp)))
                 print(f'Refilling...{num_asps}')
                 self.move_to_location(location='tube')
                 input('\nPress enter when ready for aspiration')
@@ -752,6 +757,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 print('\nPaused keyboard tracking. Press Enter when finished\n')
                 input()
                 print("Returning to tracking\n")
+            elif key == 'R':
+                if self.mode == 'p1000':
+                    self.current_volume = 1000
+                    print('Reset the current volume to 1000')
+
             elif key == Key.esc:
                 continue
             elif key == "q":
