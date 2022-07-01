@@ -730,12 +730,18 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             #     self.pulse_open()
             # elif c == '.':
             #     self.close_valves()
-            # elif key == ';':
-            #     self.pulse_width += 500
-            #     print('Current pulse width: ',self.pulse_width)
-            # elif key == '.':
-            #     self.pulse_width -= 500
-            #     print('Current pulse width: ',self.pulse_width)
+            elif key == ';':
+                self.pulse_width += 500
+                print('Current pulse width: ',self.pulse_width)
+            elif key == '.':
+                self.pulse_width -= 500
+                print('Current pulse width: ',self.pulse_width)
+            elif key == ':':
+                self.frequency += 1
+                print('Current frequency: ',self.frequency)
+            elif key == '>':
+                self.frequency -= 1
+                print('Current frequency: ',self.frequency)
             elif key == '1':
                 self.set_pressure(self.pulse_pressure,self.refuel_pressure - 0.1)
             elif key == '2':
