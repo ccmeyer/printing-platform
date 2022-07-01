@@ -972,6 +972,8 @@ class Platform():
                 self.set_pressure(2,0.3)
             elif key == 'M':
                 self.select_mode()
+            elif key == 'G':
+                self.deactivate_gripper()
             # elif c == 'r':
             #     self.pressure_test()
             elif key == 'x':
