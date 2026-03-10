@@ -1,4 +1,4 @@
-# from Precigenome.PGMFC import PGMFC
+﻿# from Precigenome.PGMFC import PGMFC
 
 import Robot, Arduino, Regulator, Monitor, ParallelProcess
 from utils import *
@@ -97,8 +97,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 else:
                     self.mass_record = self.mass_record[1:]
                     self.mass_record.append(self.mass)
-                    self.mass_diff = np.mean([self.mass_record[i]-self.mass_record[0] for i in range(len(self.mass_record))])
-                    if self.mass_diff < 0.05:
+                    self.mass_diff = max(self.mass_record) - min(self.mass_record)
+                    if self.mass_diff < 0.3:   # temporary emergency threshold
                         self.stable_mass = round(np.mean(self.mass_record),2)
                     else:
                         self.stable_mass = 'not_stable'
@@ -1413,3 +1413,4 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
 
 
 #
+
