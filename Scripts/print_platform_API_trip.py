@@ -9,22 +9,22 @@ import math
 import sys
 import msvcrt
 import json
-import numpy as np
-import pandas as pd
+import numpy as np # pyright: ignore[reportMissingImports]
+import pandas as pd # pyright: ignore[reportMissingModuleSource]
 import math
 import glob
 import os
-from pynput import keyboard
-from pynput.keyboard import Key
-from pyautogui import press
+from pynput import keyboard # pyright: ignore[reportMissingModuleSource]
+from pynput.keyboard import Key # pyright: ignore[reportMissingModuleSource]
+from pyautogui import press # pyright: ignore[reportMissingModuleSource]
 import datetime
 import shutil
-import serial
+import serial # type: ignore
 
 
 from threading import Thread
 from time import sleep
-import ipdb
+import ipdb # type: ignore
 
 import datetime
 
@@ -89,8 +89,9 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
     def read_ard(self, verbose=False):
         val = self.ser.readall().decode()
         cleaned = ''.join(val.split())
+        benign_response = cleaned == '' or set(cleaned).issubset({'C', 'E'})
         should_print = verbose or self.show_arduino_output
-        if cleaned not in ['', 'C']:
+        if not benign_response:
             should_print = True
         if 'N' in cleaned or 'F' in cleaned:
             should_print = True
@@ -263,6 +264,13 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.bottom_right = self.plate_data['bottom_right']
         self.bottom_left = self.plate_data['bottom_left']
         self.corners = np.array([self.get_coords(self.top_left)[:2],self.get_coords(self.top_right)[:2],self.get_coords(self.bottom_right)[:2],self.get_coords(self.bottom_left)[:2]], dtype = "float32")
+        self.plate_width = self.max_columns * self.spacing
+        self.plate_depth = self.max_rows * self.spacing
+        self.plate_dimensions = np.array([
+            [0, 0],
+            [0, self.plate_width],
+            [self.plate_depth, self.plate_width],
+            [self.plate_depth, 0]], dtype = "float32")
         self.gen_trans_matrix()
         self.row_z_step = (self.bottom_left['z'] - self.top_left['z']) / (self.max_rows)
         self.col_z_step =  (self.top_right['z'] - self.top_left['z']) / (self.max_columns)
@@ -440,8 +448,6 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             self.init_ard(self.default_settings['Arduino_port'])
             self.initiate_balance('COM7')
         print('All components are connected')
-        import matplotlib.pyplot as plt
-        global plt
 
         section_break()
         return
@@ -1275,9 +1281,11 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.confirm_target_disp_volume()
         self.move_to_location(location='balance')
         droplet_count = 20
+        test_bursts = 5
+        total_test_droplets = droplet_count * test_bursts
         target_per_droplet = self.target_disp_volume if target is None else target
-        target_mass = target_per_droplet * droplet_count
-        print(f'Calibration target: {target_per_droplet:.3f} uL per droplet ({target_per_droplet * 1000:.0f} nL), {target_mass:.3f} mg total for {droplet_count} droplets')
+        target_mass = target_per_droplet * total_test_droplets
+        print(f'Calibration target: {target_per_droplet:.3f} uL per droplet ({target_per_droplet * 1000:.0f} nL), {target_mass:.3f} mg total for {total_test_droplets} droplets')
 
         while True:
             print('Charge the channel and check that the refuel pressure is sufficient')
