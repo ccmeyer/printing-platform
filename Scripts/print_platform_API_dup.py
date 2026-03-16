@@ -1,4 +1,4 @@
-﻿# from Precigenome.PGMFC import PGMFC
+# from Precigenome.PGMFC import PGMFC
 
 import Robot, Arduino, Regulator, Monitor, ParallelProcess
 from utils import *
@@ -38,8 +38,13 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         self.start_tracker()
 
         self.current_key = False
-        self.sim = self.ask_yes_no(message='Run Simulation? (y/n)')
-        # self.sim = False
+        # Keep real hardware mode by default
+        self.sim = False
+
+        # Startup mode choice: y=droplet, n=p1000
+        use_droplet = self.ask_yes_no(message='Print in droplet mode? (y/n)')
+        self.start_mode = 'droplet' if use_droplet else 'p1000'
+
 
         self.log_prints = False
         self.monitor = Monitor.Monitor()
@@ -97,8 +102,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
                 else:
                     self.mass_record = self.mass_record[1:]
                     self.mass_record.append(self.mass)
-                    self.mass_diff = max(self.mass_record) - min(self.mass_record)
-                    if self.mass_diff < 0.3:   # temporary emergency threshold
+                    self.mass_diff = np.mean([self.mass_record[i]-self.mass_record[0] for i in range(len(self.mass_record))])
+                    if self.mass_diff < 0.05:
                         self.stable_mass = round(np.mean(self.mass_record),2)
                     else:
                         self.stable_mass = 'not_stable'
@@ -195,7 +200,8 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
         print('Possible modes:',self.possible_dispensers)
 
         self.mode = None
-        self.select_mode(mode_name=self.default_settings['default_dispenser'])
+        mode_to_load = getattr(self, 'start_mode', self.default_settings['default_dispenser'])
+        self.select_mode(mode_name=mode_to_load)
         return
 
     def select_mode(self,mode_name=False):
@@ -508,6 +514,10 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
             return
 
         all_exp = self.get_all_paths('Print_arrays/*/',base=True)
+        all_exp = [p for p in all_exp if os.path.basename(os.path.normpath(p)).startswith('eAA')]
+        if len(all_exp) == 0:
+            print("No eAA experiment folders found in Print_arrays.")
+            return
         experiment_folder,quit = select_options(all_exp,message='Select one of the experiments:',trim=True)
         if quit: return
         all_arrays = self.get_all_paths('{}/*.csv'.format(experiment_folder))
@@ -1413,4 +1423,3 @@ class Platform(Robot.Robot, Arduino.Arduino, Regulator.Regulator):
 
 
 #
-
